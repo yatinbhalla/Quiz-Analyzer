@@ -1,0 +1,5 @@
+{
+  "name": "Gemini Quiz Analyzer",
+  "description": "Upload a quiz file (Q&A), answer questions by first recalling the answer then selecting from options, and receive a detailed performance analysis powered by Gemini.",
+  "requestFramePermissions": []
+}
