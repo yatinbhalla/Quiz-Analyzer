@@ -1,6 +1,6 @@
 
 import { GoogleGenAI, Type, Content } from "@google/genai";
-import { QuizQuestion, UserAnswer, AnalysisReport, QuestionType, ChatMessage } from '../types';
+import { QuizQuestion, UserAnswer, AnalysisReport, QuestionType, ChatMessage, ValidationSensitivity } from '../types';
 
 if (!process.env.API_KEY) {
     throw new Error("API_KEY environment variable not set");
@@ -59,12 +59,21 @@ export const parseQuizFromText = async (fileContent: string): Promise<QuizQuesti
     }
 };
 
+const scoreBreakdownSchema = {
+    type: Type.OBJECT,
+    properties: {
+        correct: { type: Type.NUMBER },
+        total: { type: Type.NUMBER },
+        score: { type: Type.NUMBER }
+    },
+    required: ["correct", "total", "score"]
+};
 
 const analysisSchema = {
     type: Type.OBJECT,
     properties: {
         overallScore: { type: Type.NUMBER, description: "A percentage score from 0 to 100." },
-        summary: { type: Type.STRING, description: "A brief, encouraging summary of the user's performance." },
+        summary: { type: Type.STRING, description: "A dynamic, insightful summary of performance, referencing specific strengths/weaknesses." },
         detailedAnalysis: {
             type: Type.ARRAY,
             items: {
@@ -72,36 +81,60 @@ const analysisSchema = {
                 properties: {
                     question: { type: Type.STRING },
                     isCorrect: { type: Type.BOOLEAN },
-                    feedback: { type: Type.STRING, description: "Detailed feedback on the user's answer, comparing their recalled answer, final answer, and the correct answer. Explain why their answer was right or wrong and explain the correct answer." }
+                    feedback: { type: Type.STRING, description: "Detailed feedback on the answer. MUST include a thorough explanation of the correct answer's concepts, even if the user was right." },
+                    topic: { type: Type.STRING, description: "A concise, one or two-word topic for this question (e.g., 'Algebra', 'World War II')." },
+                    recalledAnswerFeedback: { type: Type.STRING, description: "Feedback on the user's recalled answer. Should be an empty string if the user skipped the recall step."},
+                    isRecalledAnswerCorrect: { type: Type.BOOLEAN, description: "True if the recalled answer is mostly correct. Omit if skipped." }
                 },
-                required: ['question', 'isCorrect', 'feedback']
+                required: ['question', 'isCorrect', 'feedback', 'topic', 'recalledAnswerFeedback']
             }
+        },
+        scoreBreakdown: {
+            type: Type.OBJECT,
+            properties: {
+                mcq: scoreBreakdownSchema,
+                msq: scoreBreakdownSchema,
+                topics: {
+                    type: Type.ARRAY,
+                    description: "An array of objects, each containing a topic name and its corresponding score breakdown.",
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            topicName: { 
+                                type: Type.STRING,
+                                description: "The name of the topic."
+                            },
+                            breakdown: scoreBreakdownSchema
+                        },
+                        required: ['topicName', 'breakdown']
+                    }
+                }
+            },
+            required: ['mcq', 'msq', 'topics']
         }
     },
-    required: ['overallScore', 'summary', 'detailedAnalysis']
+    required: ['overallScore', 'summary', 'detailedAnalysis', 'scoreBreakdown']
 };
-
 
 export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers: UserAnswer[]): Promise<AnalysisReport> => {
     try {
         const analysisPrompt = `
-            Analyze the following quiz results. For each question, provide a detailed analysis.
+            Analyze the following quiz results.
 
-            Rules for your analysis:
-            1.  **isCorrect**: This field MUST be true if and only if the user's 'finalAnswer' perfectly matches the 'correctAnswer'. An incorrect 'recalledAnswer' does not make the question wrong if the 'finalAnswer' is correct.
-            2.  **feedback**: This is the most important part. Your feedback MUST:
-                a. Start by stating if the final answer was correct or incorrect.
-                b. Analyze the user's 'recalledAnswer'. Compare it to the correct answer and explain if it was on the right track, partially correct, or completely wrong.
-                c. Analyze the user's 'finalAnswer'.
-                d. Provide a detailed explanation of the correct answer and the underlying concepts, regardless of whether the user was correct or not. This helps them learn.
-            3.  **overallScore**: Calculate the percentage of questions where 'isCorrect' is true.
-            4.  **summary**: Write a brief, encouraging summary of the user's performance, perhaps highlighting strengths or areas for improvement based on the analysis.
+            Analysis Rules:
+            1.  **detailedAnalysis**:
+                a.  'isCorrect': Must be true only if 'finalAnswer' perfectly matches 'correctAnswer'.
+                b.  'feedback': MUST provide a detailed explanation of the correct answer's concepts for EVERY question, even if the user was correct.
+                c.  'topic': Assign a concise, 1-2 word topic to each question.
+                d.  Evaluate the user's 'recalledAnswer'. If the user provided one: determine if it is mostly correct and set 'isRecalledAnswerCorrect' to true/false. Also provide brief, insightful feedback (max 20 words) in 'recalledAnswerFeedback'. Use a balanced sensitivity for evaluation. If the user skipped ('recalledAnswer' is empty), 'recalledAnswerFeedback' must be an empty string and 'isRecalledAnswerCorrect' should not be included.
+            2.  **scoreBreakdown**:
+                a.  Calculate correct, total, and percentage score for MCQ and MSQ questions separately.
+                b.  Group questions by the topics you assigned and calculate the score breakdown for each topic.
+            3.  **summary**: Write a dynamic, insightful summary of the user's performance. Instead of a generic message, you MUST identify specific patterns from the detailed analysis. For example, if the user consistently missed questions about a certain topic (e.g., a topic you identified in the 'topic' field), mention it as an area for improvement. If their recalled answers were often correct even when their final answers were not, point that out as a strength in memory recall. The summary must be tailored to the actual results and avoid generic encouragement.
 
-            Quiz Questions and Correct Answers:
-            ${JSON.stringify(questions, null, 2)}
-            
-            User's Answers:
-            ${JSON.stringify(userAnswers, null, 2)}
+            Quiz Data:
+            - Questions: ${JSON.stringify(questions, null, 2)}
+            - User's Answers: ${JSON.stringify(userAnswers, null, 2)}
         `;
 
         const response = await ai.models.generateContent({
@@ -122,7 +155,6 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
         throw new Error("Gemini could not analyze the quiz results. Please try again.");
     }
 };
-
 
 export async function* streamChatResponse(history: ChatMessage[], systemInstruction: string, useGoogleSearch: boolean) {
     const model = useGoogleSearch ? "gemini-3-flash-preview" : "gemini-3-pro-preview";

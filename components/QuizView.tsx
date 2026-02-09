@@ -1,37 +1,43 @@
 
 import React, { useState, useEffect } from 'react';
-import { QuizQuestion, UserAnswer, QuestionType } from '../types';
+import { QuizQuestion, UserAnswer, QuestionType, ValidationSensitivity } from '../types';
 
 interface QuizViewProps {
     questions: QuizQuestion[];
+    userAnswers: UserAnswer[];
+    currentIndex: number;
+    validationSensitivity: ValidationSensitivity;
+    onNavigate: (index: number) => void;
+    onAnswerUpdate: (index: number, updatedAnswer: Partial<UserAnswer>) => void;
     onComplete: (answers: UserAnswer[]) => void;
 }
 
-const QuizView: React.FC<QuizViewProps> = ({ questions, onComplete }) => {
-    const [currentIndex, setCurrentIndex] = useState(0);
-    const [userAnswers, setUserAnswers] = useState<UserAnswer[]>(() => 
-        new Array(questions.length).fill({ recalledAnswer: '', finalAnswer: [] })
-    );
+const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentIndex, validationSensitivity, onNavigate, onAnswerUpdate, onComplete }) => {
     const [recalledAnswer, setRecalledAnswer] = useState('');
     const [showOptions, setShowOptions] = useState(false);
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
     
     const currentQuestion = questions[currentIndex];
-    const progress = ((currentIndex + 1) / questions.length) * 100;
 
     useEffect(() => {
         const currentAnswer = userAnswers[currentIndex];
-        setRecalledAnswer(currentAnswer.recalledAnswer || '');
-        setSelectedOptions(currentAnswer.finalAnswer || []);
-        setShowOptions(!!currentAnswer.recalledAnswer);
+        if (currentAnswer) {
+            setRecalledAnswer(currentAnswer.recalledAnswer || '');
+            setSelectedOptions(currentAnswer.finalAnswer || []);
+            // Show options immediately if the user has already provided a recalled answer or has selected a final answer
+            setShowOptions(!!currentAnswer.recalledAnswer || (currentAnswer.finalAnswer && currentAnswer.finalAnswer.length > 0));
+        } else {
+             // Reset for new questions
+            setRecalledAnswer('');
+            setSelectedOptions([]);
+            setShowOptions(false);
+        }
     }, [currentIndex, userAnswers]);
 
     const handleRecalledSubmit = () => {
         if (recalledAnswer.trim() === '') return;
+        onAnswerUpdate(currentIndex, { recalledAnswer });
         setShowOptions(true);
-        const newAnswers = [...userAnswers];
-        newAnswers[currentIndex] = { ...newAnswers[currentIndex], recalledAnswer };
-        setUserAnswers(newAnswers);
     };
 
     const handleOptionToggle = (option: string) => {
@@ -43,36 +49,31 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, onComplete }) => {
             );
         }
     };
+    
+    const handleNavigation = (nextIndex: number) => {
+         // Save current state before navigating
+        onAnswerUpdate(currentIndex, { recalledAnswer, finalAnswer: selectedOptions });
+        onNavigate(nextIndex);
+    }
 
-    const goToNext = () => {
-        const newAnswers = [...userAnswers];
-        newAnswers[currentIndex] = { ...newAnswers[currentIndex], finalAnswer: selectedOptions };
-        setUserAnswers(newAnswers);
-        
-        if (currentIndex < questions.length - 1) {
-            setCurrentIndex(currentIndex + 1);
-        } else {
-            onComplete(newAnswers);
-        }
-    };
+    const completeQuiz = () => {
+        const finalAnswers = [...userAnswers];
+        finalAnswers[currentIndex] = { ...finalAnswers[currentIndex], recalledAnswer, finalAnswer: selectedOptions };
+        onComplete(finalAnswers);
+    }
+
+    if (!currentQuestion) {
+        return <div className="text-center p-8">Loading question...</div>;
+    }
 
     return (
         <div className="w-full max-w-3xl mx-auto">
-            <div className="mb-6">
-                <div className="flex justify-between items-center mb-2">
-                    <h3 className="text-lg font-semibold text-sky-400">Question {currentIndex + 1} of {questions.length}</h3>
-                </div>
-                <div className="w-full bg-slate-700 rounded-full h-2.5">
-                    <div className="bg-sky-500 h-2.5 rounded-full" style={{ width: `${progress}%` }}></div>
-                </div>
-            </div>
-            
             <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700">
                 <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8">{currentQuestion.question}</p>
                 
                 {!showOptions ? (
                     <div className="flex flex-col animate-fade-in">
-                        <label htmlFor="recalled-answer" className="text-slate-400 mb-2 font-medium">Type your answer before seeing the options:</label>
+                        <label htmlFor="recalled-answer" className="text-slate-400 mb-2 font-medium">Optional: Type your answer before seeing the options</label>
                         <textarea
                             id="recalled-answer"
                             rows={4}
@@ -81,16 +82,23 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, onComplete }) => {
                             className="w-full p-3 bg-slate-900 border border-slate-600 rounded-lg focus:ring-2 focus:ring-sky-500 focus:border-sky-500 transition"
                             placeholder="Recall the answer..."
                         />
-                        <button onClick={handleRecalledSubmit} disabled={!recalledAnswer.trim()} className="mt-4 px-6 py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors duration-300 self-end">
-                            Submit & View Options
-                        </button>
+                        <div className="mt-4 flex justify-end items-center gap-4">
+                            <button onClick={() => setShowOptions(true)} className="px-6 py-3 bg-slate-600/50 text-slate-300 font-bold rounded-lg hover:bg-slate-600 transition-colors duration-300">
+                                Skip
+                            </button>
+                            <button onClick={handleRecalledSubmit} disabled={!recalledAnswer.trim()} className="px-6 py-3 bg-sky-600 text-white font-bold rounded-lg hover:bg-sky-500 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors duration-300">
+                                Continue to Options
+                            </button>
+                        </div>
                     </div>
                 ) : (
                     <div className="animate-fade-in">
-                        <div className="mb-6 p-4 border-l-4 border-slate-600 bg-slate-900/50 rounded-r-lg">
-                            <p className="text-slate-400 text-sm font-medium mb-1">Your Recalled Answer:</p>
-                            <p className="text-slate-200 italic">{recalledAnswer}</p>
-                        </div>
+                        {recalledAnswer && (
+                            <div className="mb-6 p-4 border-l-4 border-slate-600 bg-slate-900/50 rounded-r-lg">
+                                <p className="text-slate-400 text-sm font-medium mb-1">Your Recalled Answer:</p>
+                                <p className="text-slate-200 italic">{recalledAnswer}</p>
+                            </div>
+                        )}
                         <h4 className="font-semibold text-slate-300 mb-4">
                             Choose the correct option(s):
                             {currentQuestion.type === QuestionType.MSQ && <span className="text-slate-400 font-normal ml-2">(Select all that apply)</span>}
@@ -109,9 +117,20 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, onComplete }) => {
                                 </button>
                             ))}
                         </div>
-                        <button onClick={goToNext} disabled={selectedOptions.length === 0} className="mt-8 float-right px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors duration-300">
-                            {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish & See Report'}
-                        </button>
+                        <div className="mt-8 flex justify-between items-center">
+                            <button onClick={() => handleNavigation(currentIndex - 1)} disabled={currentIndex === 0} className="px-6 py-3 bg-slate-600/50 text-slate-300 font-bold rounded-lg hover:bg-slate-600 disabled:bg-slate-700 disabled:text-slate-500 disabled:cursor-not-allowed transition-colors duration-300">
+                                Previous
+                            </button>
+                            {currentIndex < questions.length - 1 ? (
+                                <button onClick={() => handleNavigation(currentIndex + 1)} disabled={selectedOptions.length === 0} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors duration-300">
+                                    Next Question
+                                </button>
+                            ) : (
+                                <button onClick={completeQuiz} disabled={selectedOptions.length === 0} className="px-8 py-3 bg-green-600 text-white font-bold rounded-lg hover:bg-green-500 disabled:bg-slate-600 disabled:cursor-not-allowed transition-colors duration-300">
+                                    Finish & See Report
+                                </button>
+                            )}
+                        </div>
                     </div>
                 )}
             </div>
