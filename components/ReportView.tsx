@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { AnalysisReport, QuizQuestion, UserAnswer, QuestionType, ScoreBreakdown } from '../types';
+import { AnalysisReport, QuizQuestion, UserAnswer, QuestionType, ScoreBreakdown, RecallPerformance } from '../types';
 import Chatbot from './Chatbot';
+import MarkdownRenderer from './MarkdownRenderer';
 
 interface ReportViewProps {
     report: AnalysisReport;
@@ -40,6 +41,35 @@ const BreakdownCard: React.FC<{ title: string; breakdown: ScoreBreakdown }> = ({
     );
 };
 
+const RecallPerformanceCard: React.FC<{ performance: RecallPerformance }> = ({ performance }) => {
+    const scoreColor = performance.recallScore >= 70 ? 'text-green-400' : performance.recallScore >= 40 ? 'text-yellow-400' : 'text-red-400';
+    return (
+        <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 mb-8">
+            <div className="flex justify-between items-start mb-4">
+                <h3 className="text-xl font-bold text-sky-400">Recall Performance</h3>
+                <div className="text-right">
+                    <p className={`text-3xl font-bold ${scoreColor}`}>{performance.recallScore}%</p>
+                    <p className="text-sm text-slate-400">Recall Score</p>
+                </div>
+            </div>
+            <div className="space-y-4">
+                <div>
+                    <h4 className="font-semibold text-slate-300 mb-1">Summary</h4>
+                    <div className="text-slate-400 text-sm leading-relaxed">
+                        <MarkdownRenderer content={performance.summary} />
+                    </div>
+                </div>
+                <div>
+                    <h4 className="font-semibold text-slate-300 mb-2">How to Improve</h4>
+                    <div className="text-slate-400 text-sm">
+                        <MarkdownRenderer content={performance.improvementTips} />
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers, onRestart }) => {
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
     const scoreColor = report.overallScore >= 70 ? 'text-green-400' : report.overallScore >= 40 ? 'text-yellow-400' : 'text-red-400';
@@ -60,6 +90,8 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                 </div>
                 <p className="text-slate-300 text-lg">Overall Score</p>
             </div>
+
+            <RecallPerformanceCard performance={report.recallPerformance} />
 
             <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 mb-8">
                 <h3 className="text-xl font-bold text-sky-400 mb-4">Score Breakdown</h3>
@@ -122,6 +154,12 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                                                     ? 'text-red-400'
                                                     : 'text-sky-300'
                                             } text-sm`}>{analysis.recalledAnswerFeedback}</p>
+                                        </div>
+                                    )}
+                                     {analysis.recalledAnswerComparison && (
+                                        <div className="mt-2 pt-2 border-t border-slate-700">
+                                            <h5 className="font-bold text-slate-400 mb-1 text-xs">Recall Analysis:</h5>
+                                            <div className="text-slate-200 italic" dangerouslySetInnerHTML={{ __html: `"${analysis.recalledAnswerComparison}"` }} />
                                         </div>
                                     )}
                                 </div>

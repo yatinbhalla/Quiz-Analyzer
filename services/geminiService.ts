@@ -37,7 +37,7 @@ export const parseQuizFromText = async (fileContent: string): Promise<QuizQuesti
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Parse the following quiz text and convert it into a JSON object. The text contains questions, multiple-choice/multiple-select options, and answers. The answers might be at the end of the file or next to each question. Determine if each question is an MCQ (single correct answer) or MSQ (multiple correct answers) and set the 'type' field accordingly. The 'correctAnswer' field must always be an array of strings. Here is the quiz content:\n\n${fileContent}`,
+            contents: `Parse the following quiz text and convert it into a JSON object. The text contains questions, multiple-choice/multiple-select options, and answers. The answers might be at the end of the file or next to each question. Determine if each question is an MCQ (single correct answer) or MSQ (multiple correct answers) and set the 'type' a field accordingly. The 'correctAnswer' field must always be an array of strings. Here is the quiz content:\n\n${fileContent}`,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: quizParsingSchema,
@@ -74,6 +74,15 @@ const analysisSchema = {
     properties: {
         overallScore: { type: Type.NUMBER, description: "A percentage score from 0 to 100." },
         summary: { type: Type.STRING, description: "A dynamic, insightful summary of performance, referencing specific strengths/weaknesses." },
+        recallPerformance: {
+            type: Type.OBJECT,
+            properties: {
+                recallScore: { type: Type.NUMBER, description: "Percentage of correct recalled answers out of those attempted." },
+                summary: { type: Type.STRING, description: "A detailed summary breaking down recall performance, using markdown headings." },
+                improvementTips: { type: Type.STRING, description: "A detailed list of actionable steps to improve memory recall, formatted as a markdown list with bolded titles." }
+            },
+            required: ['recallScore', 'summary', 'improvementTips']
+        },
         detailedAnalysis: {
             type: Type.ARRAY,
             items: {
@@ -84,7 +93,8 @@ const analysisSchema = {
                     feedback: { type: Type.STRING, description: "Detailed feedback on the answer. MUST include a thorough explanation of the correct answer's concepts, even if the user was right." },
                     topic: { type: Type.STRING, description: "A concise, one or two-word topic for this question (e.g., 'Algebra', 'World War II')." },
                     recalledAnswerFeedback: { type: Type.STRING, description: "Feedback on the user's recalled answer. Should be an empty string if the user skipped the recall step."},
-                    isRecalledAnswerCorrect: { type: Type.BOOLEAN, description: "True if the recalled answer is mostly correct. Omit if skipped." }
+                    isRecalledAnswerCorrect: { type: Type.BOOLEAN, description: "True if the recalled answer is mostly correct. Omit if skipped." },
+                    recalledAnswerComparison: { type: Type.STRING, description: "An HTML string comparing the recalled answer to the correct one, with correct parts in green and incorrect in red." }
                 },
                 required: ['question', 'isCorrect', 'feedback', 'topic', 'recalledAnswerFeedback']
             }
@@ -113,7 +123,7 @@ const analysisSchema = {
             required: ['mcq', 'msq', 'topics']
         }
     },
-    required: ['overallScore', 'summary', 'detailedAnalysis', 'scoreBreakdown']
+    required: ['overallScore', 'summary', 'detailedAnalysis', 'scoreBreakdown', 'recallPerformance']
 };
 
 export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers: UserAnswer[]): Promise<AnalysisReport> => {
@@ -126,11 +136,16 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
                 a.  'isCorrect': Must be true only if 'finalAnswer' perfectly matches 'correctAnswer'.
                 b.  'feedback': MUST provide a detailed explanation of the correct answer's concepts for EVERY question, even if the user was correct.
                 c.  'topic': Assign a concise, 1-2 word topic to each question.
-                d.  Evaluate the user's 'recalledAnswer'. If the user provided one: determine if it is mostly correct and set 'isRecalledAnswerCorrect' to true/false. Also provide brief, insightful feedback (max 20 words) in 'recalledAnswerFeedback'. Use a balanced sensitivity for evaluation. If the user skipped ('recalledAnswer' is empty), 'recalledAnswerFeedback' must be an empty string and 'isRecalledAnswerCorrect' should not be included.
-            2.  **scoreBreakdown**:
+                d.  Evaluate the user's 'recalledAnswer'. If provided: determine if it's mostly correct and set 'isRecalledAnswerCorrect' to true/false, then provide brief feedback in 'recalledAnswerFeedback'. If skipped, 'recalledAnswerFeedback' must be an empty string and 'isRecalledAnswerCorrect' omitted.
+                e.  'recalledAnswerComparison': If a recalled answer was provided, compare it to the correct answer. Generate an HTML string of the user's recalled answer. Wrap text that aligns with the correct answer in \`<span class='text-green-400 font-semibold'>\` and text that is incorrect or missing key info in \`<span class='text-red-400 font-semibold'>\`. Omit this field if the user skipped recall.
+            2.  **recallPerformance**:
+                a.  'recallScore': Calculate the percentage of correct recalled answers out of those attempted. If none attempted, score is 0.
+                b.  'summary': Write a detailed summary breaking down their recall performance. Use markdown headings (e.g., \`#### Strengths\`) to structure the analysis.
+                c.  'improvementTips': Provide a detailed list of 2-3 actionable improvement strategies. Each tip MUST have a bolded title (e.g., \`**1. The Feynman Technique**\`) followed by a paragraph explaining how to apply it. Use markdown.
+            3.  **scoreBreakdown**:
                 a.  Calculate correct, total, and percentage score for MCQ and MSQ questions separately.
                 b.  Group questions by the topics you assigned and calculate the score breakdown for each topic.
-            3.  **summary**: Write a dynamic, insightful summary of the user's performance. Instead of a generic message, you MUST identify specific patterns from the detailed analysis. For example, if the user consistently missed questions about a certain topic (e.g., a topic you identified in the 'topic' field), mention it as an area for improvement. If their recalled answers were often correct even when their final answers were not, point that out as a strength in memory recall. The summary must be tailored to the actual results and avoid generic encouragement.
+            4.  **summary**: Write a dynamic, insightful summary of the user's overall performance, identifying specific patterns from the detailed analysis (e.g., topic weaknesses, recall vs. final answer discrepancies).
 
             Quiz Data:
             - Questions: ${JSON.stringify(questions, null, 2)}

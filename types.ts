@@ -33,6 +33,7 @@ export interface QuestionAnalysis {
     topic: string;
     recalledAnswerFeedback: string;
     isRecalledAnswerCorrect?: boolean;
+    recalledAnswerComparison?: string;
 }
 
 export interface ScoreBreakdown {
@@ -46,9 +47,16 @@ export interface TopicScoreBreakdown {
     breakdown: ScoreBreakdown;
 }
 
+export interface RecallPerformance {
+    recallScore: number; // Percentage
+    summary: string;
+    improvementTips: string;
+}
+
 export interface AnalysisReport {
     overallScore: number; // Percentage
     summary: string;
+    recallPerformance: RecallPerformance;
     detailedAnalysis: QuestionAnalysis[];
     scoreBreakdown: {
         mcq: ScoreBreakdown;
