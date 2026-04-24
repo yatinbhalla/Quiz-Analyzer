@@ -10,6 +10,8 @@ interface FileUploadProps {
     onFileUpload: (content: string) => void;
     sensitivity: ValidationSensitivity;
     onSensitivityChange: (sensitivity: ValidationSensitivity) => void;
+    isTimerEnabled: boolean;
+    onTimerToggle: (enabled: boolean) => void;
 }
 
 const SensitivityOption: React.FC<{
@@ -31,7 +33,7 @@ const SensitivityOption: React.FC<{
 );
 
 
-const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, sensitivity, onSensitivityChange }) => {
+const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, sensitivity, onSensitivityChange, isTimerEnabled, onTimerToggle }) => {
     const [dragging, setDragging] = useState(false);
     const [fileName, setFileName] = useState('');
     const [isProcessing, setIsProcessing] = useState(false);
@@ -149,12 +151,23 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileUpload, sensitivity, onSe
                     </>
                 )}
             </label>
-            <div className="mt-6 w-full text-center">
-                 <label className="text-slate-400 mb-3 block font-medium">Recall Validation Sensitivity</label>
-                 <div className="inline-flex bg-slate-900/50 p-1 rounded-lg space-x-1">
-                     <SensitivityOption value="Lenient" current={sensitivity} onChange={onSensitivityChange}>Lenient</SensitivityOption>
-                     <SensitivityOption value="Balanced" current={sensitivity} onChange={onSensitivityChange}>Balanced</SensitivityOption>
-                     <SensitivityOption value="Strict" current={sensitivity} onChange={onSensitivityChange}>Strict</SensitivityOption>
+            <div className="mt-6 w-full flex flex-col md:flex-row gap-6 justify-center items-start md:items-center">
+                 <div className="text-center md:text-left">
+                     <label className="text-slate-400 mb-3 block font-medium">Recall Validation Sensitivity</label>
+                     <div className="inline-flex bg-slate-900/50 p-1 rounded-lg space-x-1">
+                         <SensitivityOption value="Lenient" current={sensitivity} onChange={onSensitivityChange}>Lenient</SensitivityOption>
+                         <SensitivityOption value="Balanced" current={sensitivity} onChange={onSensitivityChange}>Balanced</SensitivityOption>
+                         <SensitivityOption value="Strict" current={sensitivity} onChange={onSensitivityChange}>Strict</SensitivityOption>
+                     </div>
+                 </div>
+                 <div className="hidden md:block w-px h-12 bg-slate-700"></div>
+                 <div className="text-center md:text-left">
+                    <label className="text-slate-400 mb-3 block font-medium">Challenge Mode</label>
+                    <label className="inline-flex items-center cursor-pointer p-2 bg-slate-900/50 rounded-lg">
+                      <input type="checkbox" className="sr-only peer" checked={isTimerEnabled} onChange={(e) => onTimerToggle(e.target.checked)} />
+                      <div className="relative w-11 h-6 bg-slate-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-600"></div>
+                      <span className="ms-3 text-sm font-semibold text-slate-300">Enable Question Timer</span>
+                    </label>
                  </div>
             </div>
         </div>

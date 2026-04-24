@@ -7,23 +7,27 @@ interface QuizViewProps {
     userAnswers: UserAnswer[];
     currentIndex: number;
     validationSensitivity: ValidationSensitivity;
+    isTimerEnabled: boolean;
     onNavigate: (index: number) => void;
     onAnswerUpdate: (index: number, updatedAnswer: Partial<UserAnswer>) => void;
     onComplete: (answers: UserAnswer[]) => void;
 }
 
-const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentIndex, validationSensitivity, onNavigate, onAnswerUpdate, onComplete }) => {
+const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, onNavigate, onAnswerUpdate, onComplete }) => {
     const [recalledAnswer, setRecalledAnswer] = useState('');
     const [showOptions, setShowOptions] = useState(false);
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
+    const [timeSpent, setTimeSpent] = useState(0);
     
     const currentQuestion = questions[currentIndex];
 
+    // Load initial state for the question
     useEffect(() => {
         const currentAnswer = userAnswers[currentIndex];
         if (currentAnswer) {
             setRecalledAnswer(currentAnswer.recalledAnswer || '');
             setSelectedOptions(currentAnswer.finalAnswer || []);
+            setTimeSpent(currentAnswer.timeSpentSeconds || 0);
             // Show options immediately if the user has already provided a recalled answer or has selected a final answer
             setShowOptions(!!currentAnswer.recalledAnswer || (currentAnswer.finalAnswer && currentAnswer.finalAnswer.length > 0));
         } else {
@@ -31,8 +35,27 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
             setRecalledAnswer('');
             setSelectedOptions([]);
             setShowOptions(false);
+            setTimeSpent(0);
         }
-    }, [currentIndex, userAnswers]);
+    }, [currentIndex]); // Intentionally omitting userAnswers to avoid resetting state while user is editing
+
+    // Timer effect
+    useEffect(() => {
+        if (!isTimerEnabled) return;
+        
+        const intervalId = setInterval(() => {
+            setTimeSpent(prev => prev + 1);
+        }, 1000);
+        
+        return () => clearInterval(intervalId);
+    }, [isTimerEnabled, currentIndex]);
+
+
+    const formatTime = (seconds: number) => {
+        const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+        const s = (seconds % 60).toString().padStart(2, '0');
+        return `${m}:${s}`;
+    };
 
     const handleRecalledSubmit = () => {
         if (recalledAnswer.trim() === '') return;
@@ -52,13 +75,13 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
     
     const handleNavigation = (nextIndex: number) => {
          // Save current state before navigating
-        onAnswerUpdate(currentIndex, { recalledAnswer, finalAnswer: selectedOptions });
+        onAnswerUpdate(currentIndex, { recalledAnswer, finalAnswer: selectedOptions, timeSpentSeconds: timeSpent });
         onNavigate(nextIndex);
     }
 
     const completeQuiz = () => {
         const finalAnswers = [...userAnswers];
-        finalAnswers[currentIndex] = { ...finalAnswers[currentIndex], recalledAnswer, finalAnswer: selectedOptions };
+        finalAnswers[currentIndex] = { ...finalAnswers[currentIndex], recalledAnswer, finalAnswer: selectedOptions, timeSpentSeconds: timeSpent };
         onComplete(finalAnswers);
     }
 
@@ -68,8 +91,16 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
 
     return (
         <div className="w-full max-w-3xl mx-auto">
-            <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700">
-                <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8">{currentQuestion.question}</p>
+            <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700 relative">
+                {isTimerEnabled && (
+                    <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-slate-900 rounded-full border border-slate-600 text-slate-300 font-mono text-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-sky-400">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                        </svg>
+                        {formatTime(timeSpent)}
+                    </div>
+                )}
+                <p className="text-xl md:text-2xl font-medium leading-relaxed mb-8 mt-2">{currentQuestion.question}</p>
                 
                 {!showOptions ? (
                     <div className="flex flex-col animate-fade-in">

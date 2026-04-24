@@ -24,6 +24,7 @@ export interface QuizQuestion {
 export interface UserAnswer {
     recalledAnswer: string;
     finalAnswer: string[]; // Array of selected options
+    timeSpentSeconds?: number;
 }
 
 export interface QuestionAnalysis {
@@ -34,6 +35,7 @@ export interface QuestionAnalysis {
     recalledAnswerFeedback: string;
     isRecalledAnswerCorrect?: boolean;
     recalledAnswerComparison?: string;
+    timeFeedback?: string;
 }
 
 export interface ScoreBreakdown {

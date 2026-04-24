@@ -12,6 +12,7 @@ import { ErrorDisplay } from './components/ErrorDisplay';
 const SAVED_STATE_KEY = 'geminiQuizAnalyzerState';
 const SAVED_INDEX_KEY = 'geminiQuizCurrentIndex';
 const SAVED_SENSITIVITY_KEY = 'geminiQuizValidationSensitivity';
+const SAVED_TIMER_KEY = 'geminiQuizTimerEnabled';
 
 
 const App: React.FC = () => {
@@ -20,6 +21,7 @@ const App: React.FC = () => {
     const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [validationSensitivity, setValidationSensitivity] = useState<ValidationSensitivity>('Balanced');
+    const [isTimerEnabled, setIsTimerEnabled] = useState(false);
     const [analysisReport, setAnalysisReport] = useState<AnalysisReport | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [isInitialized, setIsInitialized] = useState(false);
@@ -29,9 +31,13 @@ const App: React.FC = () => {
             const savedStateJSON = localStorage.getItem(SAVED_STATE_KEY);
             const savedIndexJSON = localStorage.getItem(SAVED_INDEX_KEY);
             const savedSensitivity = localStorage.getItem(SAVED_SENSITIVITY_KEY) as ValidationSensitivity;
+            const savedTimer = localStorage.getItem(SAVED_TIMER_KEY);
 
             if (savedSensitivity) {
                 setValidationSensitivity(savedSensitivity);
+            }
+            if (savedTimer !== null) {
+                setIsTimerEnabled(savedTimer === 'true');
             }
 
             if (savedStateJSON) {
@@ -60,6 +66,7 @@ const App: React.FC = () => {
         if (!isInitialized) return;
 
         localStorage.setItem(SAVED_SENSITIVITY_KEY, validationSensitivity);
+        localStorage.setItem(SAVED_TIMER_KEY, isTimerEnabled.toString());
 
         if (appState === AppState.QUIZ && quizData.length > 0) {
             const stateToSave = { appState, quizData, userAnswers };
@@ -69,7 +76,7 @@ const App: React.FC = () => {
             localStorage.removeItem(SAVED_STATE_KEY);
             localStorage.removeItem(SAVED_INDEX_KEY);
         }
-    }, [appState, quizData, userAnswers, currentIndex, validationSensitivity, isInitialized]);
+    }, [appState, quizData, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, isInitialized]);
 
     const handleFileUpload = useCallback(async (fileContent: string) => {
         setAppState(AppState.PARSING);
@@ -138,6 +145,8 @@ const App: React.FC = () => {
                         onFileUpload={handleFileUpload} 
                         sensitivity={validationSensitivity}
                         onSensitivityChange={setValidationSensitivity}
+                        isTimerEnabled={isTimerEnabled}
+                        onTimerToggle={setIsTimerEnabled}
                     />
                 );
             case AppState.PARSING:
@@ -151,13 +160,20 @@ const App: React.FC = () => {
                             onAnswerUpdate={handleAnswerUpdate}
                             onComplete={handleQuizComplete} 
                             validationSensitivity={validationSensitivity}
+                            isTimerEnabled={isTimerEnabled}
                        />;
             case AppState.ANALYZING:
                 return <Loader text="Analyzing your answers with Gemini..." />;
             case AppState.REPORT:
                 return analysisReport && <ReportView report={analysisReport} questions={quizData} userAnswers={userAnswers} onRestart={handleRestart} />;
             default:
-                return <FileUpload onFileUpload={handleFileUpload} sensitivity={validationSensitivity} onSensitivityChange={setValidationSensitivity} />;
+                return <FileUpload 
+                            onFileUpload={handleFileUpload} 
+                            sensitivity={validationSensitivity} 
+                            onSensitivityChange={setValidationSensitivity} 
+                            isTimerEnabled={isTimerEnabled}
+                            onTimerToggle={setIsTimerEnabled}
+                       />;
         }
     };
 

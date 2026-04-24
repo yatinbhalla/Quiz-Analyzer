@@ -167,7 +167,22 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                                 <div className="bg-slate-900/50 p-3 rounded-lg"><h4 className="font-bold text-slate-400 mb-1">Correct Answer</h4><div className="text-slate-200 font-medium">{renderAnswer(questions[index].correctAnswer)}</div></div>
                             </div>
                             
-                            <div><h4 className="font-bold text-sky-400 mb-2">Gemini's Feedback</h4><p className="text-slate-300 leading-relaxed">{analysis.feedback}</p></div>
+                            <div>
+                                <h4 className="font-bold text-sky-400 mb-2">Gemini's Feedback</h4>
+                                <p className="text-slate-300 leading-relaxed">{analysis.feedback}</p>
+                                
+                                {analysis.timeFeedback && userAnswers[index].timeSpentSeconds !== undefined && (
+                                    <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl">
+                                        <h5 className="font-bold text-slate-300 mb-2 text-sm flex items-center gap-2">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-sky-400">
+                                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                            </svg>
+                                            Timing Analysis ({Math.floor(userAnswers[index].timeSpentSeconds! / 60)}:{(userAnswers[index].timeSpentSeconds! % 60).toString().padStart(2, '0')})
+                                        </h5>
+                                        <p className="text-slate-400 text-sm leading-relaxed">{analysis.timeFeedback}</p>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
                 ))}

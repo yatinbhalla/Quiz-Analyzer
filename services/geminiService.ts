@@ -94,7 +94,8 @@ const analysisSchema = {
                     topic: { type: Type.STRING, description: "A concise, one or two-word topic for this question (e.g., 'Algebra', 'World War II')." },
                     recalledAnswerFeedback: { type: Type.STRING, description: "Feedback on the user's recalled answer. Should be an empty string if the user skipped the recall step."},
                     isRecalledAnswerCorrect: { type: Type.BOOLEAN, description: "True if the recalled answer is mostly correct. Omit if skipped." },
-                    recalledAnswerComparison: { type: Type.STRING, description: "An HTML string comparing the recalled answer to the correct one, with correct parts in green and incorrect in red." }
+                    recalledAnswerComparison: { type: Type.STRING, description: "An HTML string comparing the recalled answer to the correct one, with correct parts in green and incorrect in red." },
+                    timeFeedback: { type: Type.STRING, description: "Feedback on the time taken to answer the question, if timeSpentSeconds was provided." }
                 },
                 required: ['question', 'isCorrect', 'feedback', 'topic', 'recalledAnswerFeedback']
             }
@@ -138,6 +139,7 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
                 c.  'topic': Assign a concise, 1-2 word topic to each question.
                 d.  Evaluate the user's 'recalledAnswer'. If provided: determine if it's mostly correct and set 'isRecalledAnswerCorrect' to true/false, then provide brief feedback in 'recalledAnswerFeedback'. If skipped, 'recalledAnswerFeedback' must be an empty string and 'isRecalledAnswerCorrect' omitted.
                 e.  'recalledAnswerComparison': If a recalled answer was provided, compare it to the correct answer. Generate an HTML string of the user's recalled answer. Wrap text that aligns with the correct answer in \`<span class='text-green-400 font-semibold'>\` and text that is incorrect or missing key info in \`<span class='text-red-400 font-semibold'>\`. Omit this field if the user skipped recall.
+                f.  'timeFeedback': If 'timeSpentSeconds' is provided, provide brief feedback on their speed. Over 60 seconds on a simple question might suggest uncertainty; fast but incorrect might suggest guessing. Provide an empty string if not applicable.
             2.  **recallPerformance**:
                 a.  'recallScore': Calculate the percentage of correct recalled answers out of those attempted. If none attempted, score is 0.
                 b.  'summary': Write a detailed summary breaking down their recall performance. Use markdown headings (e.g., \`#### Strengths\`) to structure the analysis.
