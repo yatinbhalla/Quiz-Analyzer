@@ -1,0 +1,38 @@
+{
+  "entities": {
+    "quiz_session": {
+      "title": "Quiz Session",
+      "description": "A quiz session containing questions, answers, and the analysis report",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "User who took the quiz"
+        },
+        "createdAt": {
+          "type": "number",
+          "description": "Timestamp of session completion"
+        },
+        "quizData": {
+          "type": "array"
+        },
+        "userAnswers": {
+          "type": "array"
+        },
+        "analysisReport": {
+          "type": "object"
+        },
+        "sensitivity": {
+          "type": "string"
+        }
+      },
+      "required": ["userId", "createdAt", "quizData"]
+    }
+  },
+  "firestore": {
+    "quiz_sessions/{sessionId}": {
+      "schema": "quiz_session",
+      "description": "Quiz sessions history"
+    }
+  }
+}

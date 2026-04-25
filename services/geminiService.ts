@@ -122,9 +122,28 @@ const analysisSchema = {
                 }
             },
             required: ['mcq', 'msq', 'topics']
+        },
+        studyPlan: {
+             type: Type.OBJECT,
+             properties: {
+                 focusAreas: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Specific areas/topics to focus on." },
+                 recommendations: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Types of practice questions and methods." },
+                 concepts: {
+                     type: Type.ARRAY,
+                     items: {
+                         type: Type.OBJECT,
+                         properties: {
+                             name: { type: Type.STRING },
+                             resourceContext: { type: Type.STRING, description: "Link to relevant concepts discussed in feedback." }
+                         },
+                         required: ['name', 'resourceContext']
+                     }
+                 }
+             },
+             required: ['focusAreas', 'recommendations', 'concepts']
         }
     },
-    required: ['overallScore', 'summary', 'detailedAnalysis', 'scoreBreakdown', 'recallPerformance']
+    required: ['overallScore', 'summary', 'detailedAnalysis', 'scoreBreakdown', 'recallPerformance', 'studyPlan']
 };
 
 export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers: UserAnswer[]): Promise<AnalysisReport> => {
@@ -148,6 +167,7 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
                 a.  Calculate correct, total, and percentage score for MCQ and MSQ questions separately.
                 b.  Group questions by the topics you assigned and calculate the score breakdown for each topic.
             4.  **summary**: Write a dynamic, insightful summary of the user's overall performance, identifying specific patterns from the detailed analysis (e.g., topic weaknesses, recall vs. final answer discrepancies).
+            5.  **studyPlan**: Base this on 'recallPerformance' and 'scoreBreakdown'. Suggest specific focus areas, recommend types of practice questions, and link to relevant concepts discussed in the feedback.
 
             Quiz Data:
             - Questions: ${JSON.stringify(questions, null, 2)}

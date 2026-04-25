@@ -9,12 +9,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@google/genai": "^1.39.0",
+    "firebase": "^12.12.1",
+    "mammoth": "1.7.2",
+    "marked": "13.0.2",
+    "pdfjs-dist": "4.5.136",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "@google/genai": "^1.39.0",
-    "mammoth": "1.7.2",
-    "pdfjs-dist": "4.5.136",
-    "marked": "13.0.2"
+    "recharts": "^3.8.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

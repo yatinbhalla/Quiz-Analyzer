@@ -8,15 +8,17 @@ import Loader from './components/Loader';
 import { parseQuizFromText, analyzeQuizAnswers } from './services/geminiService';
 import { Header } from './components/Header';
 import { ErrorDisplay } from './components/ErrorDisplay';
+import { Dashboard } from './components/Dashboard';
+import { QuizCreator } from './components/QuizCreator';
+import { saveQuizSession, QuizSessionData } from './services/firebaseService';
 
 const SAVED_STATE_KEY = 'geminiQuizAnalyzerState';
 const SAVED_INDEX_KEY = 'geminiQuizCurrentIndex';
 const SAVED_SENSITIVITY_KEY = 'geminiQuizValidationSensitivity';
 const SAVED_TIMER_KEY = 'geminiQuizTimerEnabled';
 
-
 const App: React.FC = () => {
-    const [appState, setAppState] = useState<AppState>(AppState.UPLOAD);
+    const [appState, setAppState] = useState<AppState>(AppState.DASHBOARD);
     const [quizData, setQuizData] = useState<QuizQuestion[]>([]);
     const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -98,6 +100,13 @@ const App: React.FC = () => {
         }
     }, []);
 
+    const handleQuizCreated = useCallback((newQuizData: QuizQuestion[]) => {
+        setQuizData(newQuizData);
+        setUserAnswers(new Array(newQuizData.length).fill({ recalledAnswer: '', finalAnswer: [] }));
+        setCurrentIndex(0);
+        setAppState(AppState.QUIZ);
+    }, []);
+
     const handleAnswerUpdate = useCallback((index: number, updatedAnswer: Partial<UserAnswer>) => {
         setUserAnswers(prevAnswers => {
             const newAnswers = [...prevAnswers];
@@ -114,20 +123,31 @@ const App: React.FC = () => {
             const report = await analyzeQuizAnswers(quizData, finalAnswers);
             setAnalysisReport(report);
             setAppState(AppState.REPORT);
+            
+            // Save session to Firebase
+            await saveQuizSession(quizData, finalAnswers, report, validationSensitivity);
+            
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred during analysis.");
             setAppState(AppState.QUIZ);
         }
-    }, [quizData]);
+    }, [quizData, validationSensitivity]);
 
     const handleRestart = () => {
-        setAppState(AppState.UPLOAD);
+        setAppState(AppState.DASHBOARD);
         setQuizData([]);
         setUserAnswers([]);
         setAnalysisReport(null);
         setCurrentIndex(0);
         setError(null);
+    };
+
+    const handleViewReport = (session: QuizSessionData) => {
+        setQuizData(session.quizData);
+        setUserAnswers(session.userAnswers);
+        setAnalysisReport(session.analysisReport);
+        setAppState(AppState.REPORT);
     };
 
     const renderContent = () => {
@@ -139,15 +159,30 @@ const App: React.FC = () => {
         }
 
         switch (appState) {
+            case AppState.DASHBOARD:
+                return (
+                    <Dashboard 
+                        onStartUpload={() => setAppState(AppState.UPLOAD)}
+                        onStartCreate={() => setAppState(AppState.CREATE)}
+                        onViewReport={handleViewReport}
+                    />
+                );
             case AppState.UPLOAD:
                 return (
-                    <FileUpload 
-                        onFileUpload={handleFileUpload} 
-                        sensitivity={validationSensitivity}
-                        onSensitivityChange={setValidationSensitivity}
-                        isTimerEnabled={isTimerEnabled}
-                        onTimerToggle={setIsTimerEnabled}
-                    />
+                    <div className="space-y-6 animate-fade-in text-center">
+                        <button onClick={() => setAppState(AppState.DASHBOARD)} className="text-slate-400 hover:text-white mb-4">← Back to Dashboard</button>
+                        <FileUpload 
+                            onFileUpload={handleFileUpload} 
+                            sensitivity={validationSensitivity}
+                            onSensitivityChange={setValidationSensitivity}
+                            isTimerEnabled={isTimerEnabled}
+                            onTimerToggle={setIsTimerEnabled}
+                        />
+                    </div>
+                );
+            case AppState.CREATE:
+                return (
+                    <QuizCreator onQuizCreated={handleQuizCreated} onCancel={() => setAppState(AppState.DASHBOARD)} />
                 );
             case AppState.PARSING:
                 return <Loader text="Parsing your quiz with Gemini..." />;
@@ -167,13 +202,13 @@ const App: React.FC = () => {
             case AppState.REPORT:
                 return analysisReport && <ReportView report={analysisReport} questions={quizData} userAnswers={userAnswers} onRestart={handleRestart} />;
             default:
-                return <FileUpload 
-                            onFileUpload={handleFileUpload} 
-                            sensitivity={validationSensitivity} 
-                            onSensitivityChange={setValidationSensitivity} 
-                            isTimerEnabled={isTimerEnabled}
-                            onTimerToggle={setIsTimerEnabled}
-                       />;
+                return (
+                    <Dashboard 
+                        onStartUpload={() => setAppState(AppState.UPLOAD)}
+                        onStartCreate={() => setAppState(AppState.CREATE)}
+                        onViewReport={handleViewReport}
+                    />
+                );
         }
     };
 
@@ -186,7 +221,7 @@ const App: React.FC = () => {
             <div className="w-full max-w-4xl mx-auto">
                 <Header 
                     onRestart={handleRestart} 
-                    showRestart={appState !== AppState.UPLOAD}
+                    showRestart={appState !== AppState.DASHBOARD}
                     showProgress={appState === AppState.QUIZ}
                     progress={quizProgress}
                     currentQuestion={currentIndex + 1}

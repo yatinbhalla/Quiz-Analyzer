@@ -1,8 +1,9 @@
 
 import React, { useState } from 'react';
-import { AnalysisReport, QuizQuestion, UserAnswer, QuestionType, ScoreBreakdown, RecallPerformance } from '../types';
+import { AnalysisReport, QuizQuestion, UserAnswer, QuestionType, ScoreBreakdown, RecallPerformance, StudyPlan } from '../types';
 import Chatbot from './Chatbot';
 import MarkdownRenderer from './MarkdownRenderer';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ReportViewProps {
     report: AnalysisReport;
@@ -43,26 +44,115 @@ const BreakdownCard: React.FC<{ title: string; breakdown: ScoreBreakdown }> = ({
 
 const RecallPerformanceCard: React.FC<{ performance: RecallPerformance }> = ({ performance }) => {
     const scoreColor = performance.recallScore >= 70 ? 'text-green-400' : performance.recallScore >= 40 ? 'text-yellow-400' : 'text-red-400';
+    
+    // Mock data for peer comparison. Real implementation would fetch this from Firebase aggregations.
+    const chartData = [
+        {
+            name: 'Recall Accuracy',
+            You: performance.recallScore,
+            Peers: 65, // Typical average recall across users
+        }
+    ];
+
     return (
         <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 mb-8">
-            <div className="flex justify-between items-start mb-4">
+            <div className="flex justify-between items-start mb-6">
                 <h3 className="text-xl font-bold text-sky-400">Recall Performance</h3>
                 <div className="text-right">
                     <p className={`text-3xl font-bold ${scoreColor}`}>{performance.recallScore}%</p>
-                    <p className="text-sm text-slate-400">Recall Score</p>
+                    <p className="text-sm text-slate-400">Current Score</p>
                 </div>
             </div>
-            <div className="space-y-4">
-                <div>
-                    <h4 className="font-semibold text-slate-300 mb-1">Summary</h4>
-                    <div className="text-slate-400 text-sm leading-relaxed">
-                        <MarkdownRenderer content={performance.summary} />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                    <div>
+                        <h4 className="font-semibold text-slate-300 mb-1">Summary</h4>
+                        <div className="text-slate-400 text-sm leading-relaxed">
+                            <MarkdownRenderer content={performance.summary} />
+                        </div>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold text-slate-300 mb-2">How to Improve</h4>
+                        <div className="text-slate-400 text-sm">
+                            <MarkdownRenderer content={performance.improvementTips} />
+                        </div>
                     </div>
                 </div>
                 <div>
-                    <h4 className="font-semibold text-slate-300 mb-2">How to Improve</h4>
-                    <div className="text-slate-400 text-sm">
-                        <MarkdownRenderer content={performance.improvementTips} />
+                     <h4 className="font-semibold text-slate-300 mb-2">Peer Comparison</h4>
+                     <p className="text-xs text-slate-500 mb-4">* The 'Peers' metric currently shows a simulated average value. Collecting aggregate topic-level recall data from all users to build a true global baseline feature is recommended.</p>
+                     <div className="h-48 w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
+                                <XAxis dataKey="name" stroke="#94a3b8" />
+                                <YAxis stroke="#94a3b8" domain={[0, 100]} />
+                                <Tooltip cursor={{ fill: '#1e293b' }} contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', color: '#f8fafc' }} />
+                                <Legend wrapperStyle={{ paddingTop: '10px' }} />
+                                <Bar dataKey="You" fill="#0ea5e9" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="Peers" fill="#64748b" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
+                     </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const StudyPlanCard: React.FC<{ plan?: StudyPlan }> = ({ plan }) => {
+    if (!plan) return null;
+    return (
+        <div className="bg-gradient-to-br from-indigo-900/40 to-slate-800 p-6 rounded-2xl shadow-lg border border-indigo-500/30 mb-8 border-l-4 border-l-indigo-500">
+            <h3 className="text-2xl font-bold flex items-center gap-3 text-indigo-400 mb-6">
+                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-7 h-7">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 0 0 6 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 0 1 6 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 0 1 6-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0 0 18 18a8.967 8.967 0 0 0-6 2.292m0-14.25v14.25" />
+                 </svg>
+                Personalized Study Plan
+            </h3>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div>
+                   <h4 className="text-slate-300 font-bold mb-3 flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-red-400"></span> 
+                       Priority Focus Areas
+                   </h4>
+                   <ul className="space-y-2 mb-6">
+                       {plan.focusAreas.map((area, i) => (
+                           <li key={i} className="bg-slate-900/60 px-4 py-2 rounded-lg text-slate-300 border border-slate-700/50 text-sm">
+                               {area}
+                           </li>
+                       ))}
+                   </ul>
+
+                   <h4 className="text-slate-300 font-bold mb-3 flex items-center gap-2">
+                       <span className="w-2 h-2 rounded-full bg-emerald-400"></span> 
+                       Recommended Practice
+                   </h4>
+                   <ul className="space-y-2">
+                       {plan.recommendations.map((rec, i) => (
+                           <li key={i} className="flex gap-3 text-slate-300 text-sm items-start">
+                               <span className="text-emerald-500 mt-0.5">✓</span>
+                               <span>{rec}</span>
+                           </li>
+                       ))}
+                   </ul>
+                </div>
+                
+                <div className="bg-slate-900/60 p-5 rounded-xl border border-slate-700">
+                    <h4 className="text-slate-300 font-bold mb-4 flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-sky-400">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                        </svg>
+                       Concepts to Review
+                    </h4>
+                    <div className="space-y-4">
+                        {plan.concepts.map((concept, i) => (
+                            <div key={i} className="border-l-2 border-indigo-500/50 pl-3">
+                                <p className="font-medium text-slate-200 mb-1">{concept.name}</p>
+                                <p className="text-xs text-slate-400 leading-relaxed">{concept.resourceContext}</p>
+                            </div>
+                        ))}
                     </div>
                 </div>
             </div>
@@ -92,6 +182,7 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
             </div>
 
             <RecallPerformanceCard performance={report.recallPerformance} />
+            <StudyPlanCard plan={report.studyPlan} />
 
             <div className="bg-slate-800 p-6 rounded-2xl shadow-lg border border-slate-700 mb-8">
                 <h3 className="text-xl font-bold text-sky-400 mb-4">Score Breakdown</h3>

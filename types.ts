@@ -1,6 +1,8 @@
 
 export enum AppState {
     UPLOAD = 'UPLOAD',
+    CREATE = 'CREATE',
+    DASHBOARD = 'DASHBOARD',
     PARSING = 'PARSING',
     QUIZ = 'QUIZ',
     ANALYZING = 'ANALYZING',
@@ -55,6 +57,12 @@ export interface RecallPerformance {
     improvementTips: string;
 }
 
+export interface StudyPlan {
+    focusAreas: string[];
+    recommendations: string[];
+    concepts: { name: string; resourceContext: string }[];
+}
+
 export interface AnalysisReport {
     overallScore: number; // Percentage
     summary: string;
@@ -65,6 +73,7 @@ export interface AnalysisReport {
         msq: ScoreBreakdown;
         topics: TopicScoreBreakdown[];
     };
+    studyPlan?: StudyPlan;
 }
 
 // Types for Chatbot
