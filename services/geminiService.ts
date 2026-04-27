@@ -59,6 +59,38 @@ export const parseQuizFromText = async (fileContent: string): Promise<QuizQuesti
     }
 };
 
+export const generateQuiz = async (topic: string, difficulty: string, questionType: string, category: string, count: number): Promise<QuizQuestion[]> => {
+    try {
+        const prompt = `Generate exactly ${count} quiz questions about '${topic}'.
+The difficulty level should be '${difficulty}'.
+The question type style should be '${questionType}' (e.g. MCQ, MSQ, or Mix).
+The category of questions should be '${category}' (e.g. conceptual, scenario-based, case studies, or mix).
+
+Ensure the output is a valid JSON array matching the provided schema. The 'correctAnswer' field MUST be an array of strings matching the exact text of the correct option(s).`;
+
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: quizParsingSchema,
+            },
+        });
+        
+        const jsonText = response.text.trim();
+        const parsedData = JSON.parse(jsonText);
+
+        if (!Array.isArray(parsedData)) {
+            throw new Error("Generated data is not an array.");
+        }
+
+        return parsedData as QuizQuestion[];
+    } catch (error) {
+        console.error("Error generating quiz with Gemini:", error);
+        throw new Error("Gemini could not generate the quiz. Please try again.");
+    }
+};
+
 const scoreBreakdownSchema = {
     type: Type.OBJECT,
     properties: {
@@ -91,7 +123,8 @@ const analysisSchema = {
                     question: { type: Type.STRING },
                     isCorrect: { type: Type.BOOLEAN },
                     feedback: { type: Type.STRING, description: "Detailed feedback on the answer. MUST include a thorough explanation of the correct answer's concepts, even if the user was right." },
-                    topic: { type: Type.STRING, description: "A concise, one or two-word topic for this question (e.g., 'Algebra', 'World War II')." },
+                    topic: { type: Type.STRING, description: "A broad topic for this question (e.g., 'History', 'Science')." },
+                    subTopic: { type: Type.STRING, description: "A very granular sub-topic logically nested under the topic (e.g., 'Ancient Rome', 'Genetics'). Can be omitted if too generic." },
                     recalledAnswerFeedback: { type: Type.STRING, description: "Feedback on the user's recalled answer. Should be an empty string if the user skipped the recall step."},
                     isRecalledAnswerCorrect: { type: Type.BOOLEAN, description: "True if the recalled answer is mostly correct. Omit if skipped." },
                     recalledAnswerComparison: { type: Type.STRING, description: "An HTML string comparing the recalled answer to the correct one, with correct parts in green and incorrect in red." },
@@ -113,9 +146,21 @@ const analysisSchema = {
                         properties: {
                             topicName: { 
                                 type: Type.STRING,
-                                description: "The name of the topic."
+                                description: "The name of the broad topic."
                             },
-                            breakdown: scoreBreakdownSchema
+                            breakdown: scoreBreakdownSchema,
+                            subTopics: {
+                                type: Type.ARRAY,
+                                description: "Breakdown of scores by sub-topics within this main topic. This allows for granular insights into a topic.",
+                                items: {
+                                    type: Type.OBJECT,
+                                    properties: {
+                                        subTopicName: { type: Type.STRING },
+                                        breakdown: scoreBreakdownSchema
+                                    },
+                                    required: ['subTopicName', 'breakdown']
+                                }
+                            }
                         },
                         required: ['topicName', 'breakdown']
                     }
@@ -155,7 +200,7 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
             1.  **detailedAnalysis**:
                 a.  'isCorrect': Must be true only if 'finalAnswer' perfectly matches 'correctAnswer'.
                 b.  'feedback': MUST provide a detailed explanation of the correct answer's concepts for EVERY question, even if the user was correct.
-                c.  'topic': Assign a concise, 1-2 word topic to each question.
+                c.  'topic' and 'subTopic': Assign a broad topic and a granular sub-topic for each question to identify precise areas of strength or weakness.
                 d.  Evaluate the user's 'recalledAnswer'. If provided: determine if it's mostly correct and set 'isRecalledAnswerCorrect' to true/false, then provide brief feedback in 'recalledAnswerFeedback'. If skipped, 'recalledAnswerFeedback' must be an empty string and 'isRecalledAnswerCorrect' omitted.
                 e.  'recalledAnswerComparison': If a recalled answer was provided, compare it to the correct answer. Generate an HTML string of the user's recalled answer. Wrap text that aligns with the correct answer in \`<span class='text-green-400 font-semibold'>\` and text that is incorrect or missing key info in \`<span class='text-red-400 font-semibold'>\`. Omit this field if the user skipped recall.
                 f.  'timeFeedback': If 'timeSpentSeconds' is provided, provide brief feedback on their speed. Over 60 seconds on a simple question might suggest uncertainty; fast but incorrect might suggest guessing. Provide an empty string if not applicable.
@@ -165,7 +210,7 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
                 c.  'improvementTips': Provide a detailed list of 2-3 actionable improvement strategies. Each tip MUST have a bolded title (e.g., \`**1. The Feynman Technique**\`) followed by a paragraph explaining how to apply it. Use markdown.
             3.  **scoreBreakdown**:
                 a.  Calculate correct, total, and percentage score for MCQ and MSQ questions separately.
-                b.  Group questions by the topics you assigned and calculate the score breakdown for each topic.
+                b.  Group questions by the broad topics you assigned. For each topic, group its questions by subTopic to provide a granular score breakdown.
             4.  **summary**: Write a dynamic, insightful summary of the user's overall performance, identifying specific patterns from the detailed analysis (e.g., topic weaknesses, recall vs. final answer discrepancies).
             5.  **studyPlan**: Base this on 'recallPerformance' and 'scoreBreakdown'. Suggest specific focus areas, recommend types of practice questions, and link to relevant concepts discussed in the feedback.
 

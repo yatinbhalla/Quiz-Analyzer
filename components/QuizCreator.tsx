@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { QuizQuestion, QuestionType } from '../types';
+import { generateQuiz } from '../services/geminiService';
+import Loader from './Loader';
 
 interface QuizCreatorProps {
     onQuizCreated: (quiz: QuizQuestion[]) => void;
@@ -7,10 +9,37 @@ interface QuizCreatorProps {
 }
 
 export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCancel }) => {
+    const [mode, setMode] = useState<'manual' | 'ai'>('ai');
+    
+    // AI Form State
+    const [topic, setTopic] = useState('');
+    const [difficulty, setDifficulty] = useState('Medium');
+    const [qType, setQType] = useState('MCQ');
+    const [category, setCategory] = useState('Conceptual');
+    const [count, setCount] = useState(5);
+    const [isGenerating, setIsGenerating] = useState(false);
+
+    // Manual Form State
     const [questions, setQuestions] = useState<QuizQuestion[]>([
         { question: '', options: ['', ''], correctAnswer: [], type: QuestionType.MCQ }
     ]);
     const [error, setError] = useState<string | null>(null);
+
+    const handleGenerate = async () => {
+        if (!topic.trim()) {
+            setError("Please enter a topic.");
+            return;
+        }
+        setError(null);
+        setIsGenerating(true);
+        try {
+            const generated = await generateQuiz(topic, difficulty, qType, category, count);
+            onQuizCreated(generated);
+        } catch (err) {
+            setError(err instanceof Error ? err.message : "Failed to generate quiz.");
+            setIsGenerating(false);
+        }
+    };
 
     const updateQuestion = (index: number, updates: Partial<QuizQuestion>) => {
         const newQuestions = [...questions];
@@ -101,6 +130,10 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
         onQuizCreated(questions);
     };
 
+    if (isGenerating) {
+        return <Loader text="Generating custom quiz with Gemini..." />;
+    }
+
     return (
         <div className="w-full max-w-4xl mx-auto space-y-6 animate-fade-in pb-20">
             <div className="flex justify-between items-center mb-6">
@@ -108,9 +141,87 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
                  <button onClick={onCancel} className="text-slate-400 hover:text-white">Cancel</button>
             </div>
 
-            {error && <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-lg">{error}</div>}
+            <div className="flex bg-slate-800 p-1 rounded-lg w-fit border border-slate-700">
+                <button 
+                    onClick={() => setMode('ai')} 
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'ai' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                    Generate with AI
+                </button>
+                <button 
+                    onClick={() => setMode('manual')} 
+                    className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${mode === 'manual' ? 'bg-sky-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                >
+                    Write Manually
+                </button>
+            </div>
 
-            {questions.map((q, qIndex) => (
+            {error && <div className="bg-red-500/10 border border-red-500/50 text-red-400 p-4 rounded-lg" role="alert">{error}</div>}
+
+            {mode === 'ai' && (
+                <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-6">
+                    <div>
+                        <label className="block text-sm font-medium text-slate-400 mb-2">What topic do you want to learn?</label>
+                        <input 
+                            type="text" 
+                            value={topic} 
+                            onChange={e => setTopic(e.target.value)} 
+                            placeholder="e.g. Neuroscience, Python Generators, French Revolution"
+                            className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-500"
+                        />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Difficulty</label>
+                            <select value={difficulty} onChange={e => setDifficulty(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-500">
+                                <option>Easy</option>
+                                <option>Medium</option>
+                                <option>Hard</option>
+                                <option>Expert</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Question Style</label>
+                            <select value={category} onChange={e => setCategory(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-500">
+                                <option>Conceptual</option>
+                                <option>Scenario-based</option>
+                                <option>Case Studies</option>
+                                <option>Mix</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Format</label>
+                            <select value={qType} onChange={e => setQType(e.target.value)} className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-sky-500 focus-visible:ring-2 focus-visible:ring-sky-500">
+                                <option value="MCQ">Single Choice (MCQ)</option>
+                                <option value="MSQ">Multiple Choice (MSQ)</option>
+                                <option value="Mix">Mix of both</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-2">Number of Questions ({count})</label>
+                            <input 
+                                type="range" 
+                                min="3" max="15" 
+                                value={count} 
+                                onChange={e => setCount(parseInt(e.target.value))}
+                                className="w-full accent-sky-500"
+                            />
+                        </div>
+                    </div>
+
+                    <button 
+                        onClick={handleGenerate}
+                        className="w-full py-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-bold text-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                    >
+                        ✨ Generate Quiz
+                    </button>
+                </div>
+            )}
+
+            {mode === 'manual' && (
+                <>
+                    {questions.map((q, qIndex) => (
                 <div key={qIndex} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4 relative">
                     {questions.length > 1 && (
                         <button 
@@ -190,17 +301,19 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
             <div className="flex gap-4">
                 <button 
                     onClick={addQuestion}
-                    className="flex-1 py-3 px-4 border border-dashed border-slate-600 rounded-xl text-slate-300 hover:text-white hover:border-slate-400 font-medium transition-colors"
+                    className="flex-1 py-3 px-4 border border-dashed border-slate-600 rounded-xl text-slate-300 hover:text-white hover:border-slate-400 font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
                 >
                     + Add New Question
                 </button>
                 <button 
                     onClick={handleSubmit}
-                    className="flex-1 py-3 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition-colors"
+                    className="flex-1 py-3 px-4 bg-sky-600 hover:bg-sky-500 text-white rounded-xl font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
                 >
                     Save & Start Quiz
                 </button>
             </div>
+            </>
+            )}
         </div>
     );
 };

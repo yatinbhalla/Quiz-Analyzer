@@ -21,6 +21,8 @@ export interface QuizQuestion {
     options: string[];
     correctAnswer: string[]; // Always an array, even for MCQ
     type: QuestionType;
+    topic?: string;
+    subTopic?: string;
 }
 
 export interface UserAnswer {
@@ -34,6 +36,7 @@ export interface QuestionAnalysis {
     isCorrect: boolean;
     feedback: string;
     topic: string;
+    subTopic?: string;
     recalledAnswerFeedback: string;
     isRecalledAnswerCorrect?: boolean;
     recalledAnswerComparison?: string;
@@ -46,9 +49,15 @@ export interface ScoreBreakdown {
     score: number;
 }
 
+export interface SubTopicScoreBreakdown {
+    subTopicName: string;
+    breakdown: ScoreBreakdown;
+}
+
 export interface TopicScoreBreakdown {
     topicName: string;
     breakdown: ScoreBreakdown;
+    subTopics?: SubTopicScoreBreakdown[];
 }
 
 export interface RecallPerformance {

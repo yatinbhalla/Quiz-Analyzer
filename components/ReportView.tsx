@@ -197,9 +197,24 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                      <div>
                         <h4 className="text-slate-400 font-semibold mb-2 text-sm">By Topic</h4>
                         <div className="space-y-2">
-                           {report.scoreBreakdown.topics.map((topicItem) => (
-                               <BreakdownCard key={topicItem.topicName} title={topicItem.topicName} breakdown={topicItem.breakdown} />
-                           ))}
+                            {report.scoreBreakdown.topics.map((topicItem) => (
+                                <div key={topicItem.topicName} className="space-y-1">
+                                    <BreakdownCard title={topicItem.topicName} breakdown={topicItem.breakdown} />
+                                    {topicItem.subTopics && topicItem.subTopics.length > 0 && (
+                                        <div className="pl-4 space-y-1 border-l-2 border-slate-700 ml-2">
+                                            {topicItem.subTopics.map(sub => (
+                                                <div key={sub.subTopicName} className="bg-slate-900/30 p-2 rounded-lg flex justify-between items-center text-sm">
+                                                    <div>
+                                                        <span className="font-semibold text-slate-400">{sub.subTopicName}</span>
+                                                        <span className="text-xs text-slate-500 ml-2">{sub.breakdown.correct} / {sub.breakdown.total} correct</span>
+                                                    </div>
+                                                    <ScorePill score={sub.breakdown.score} />
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

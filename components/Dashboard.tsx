@@ -9,6 +9,22 @@ interface DashboardProps {
     onViewReport: (session: QuizSessionData) => void;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+        return (
+            <div className="bg-slate-900 border border-slate-700 p-3 rounded-lg shadow-xl" role="tooltip">
+                <p className="text-slate-200 font-bold mb-2">{label}</p>
+                {payload.map((entry: any, index: number) => (
+                    <p key={index} style={{ color: entry.color }} className="text-sm font-medium">
+                        {entry.name}: {entry.value}%
+                    </p>
+                ))}
+            </div>
+        );
+    }
+    return null;
+};
+
 export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCreate, onViewReport }) => {
     const [user, setUser] = useState(auth.currentUser);
     const [sessions, setSessions] = useState<QuizSessionData[]>([]);
@@ -74,14 +90,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCrea
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <button onClick={onStartUpload} className="bg-sky-900/40 border border-sky-700/50 hover:bg-sky-800/50 p-8 rounded-2xl flex flex-col items-center justify-center gap-4 transition-colors group">
+                <button onClick={onStartUpload} aria-label="Start Upload" className="bg-sky-900/40 border border-sky-700/50 hover:bg-sky-800/50 p-8 rounded-2xl flex flex-col items-center justify-center gap-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-sky-400 group-hover:scale-110 transition-transform">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m3.75 9v6m3-3H9m1.5-12H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
                     </svg>
                     <span className="text-xl font-bold text-sky-100">Upload Quiz File</span>
                 </button>
 
-                <button onClick={onStartCreate} className="bg-indigo-900/40 border border-indigo-700/50 hover:bg-indigo-800/50 p-8 rounded-2xl flex flex-col items-center justify-center gap-4 transition-colors group">
+                <button onClick={onStartCreate} aria-label="Create Custom Quiz" className="bg-indigo-900/40 border border-indigo-700/50 hover:bg-indigo-800/50 p-8 rounded-2xl flex flex-col items-center justify-center gap-4 transition-colors group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-12 h-12 text-indigo-400 group-hover:scale-110 transition-transform">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                     </svg>
@@ -101,9 +117,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCrea
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="name" stroke="#94a3b8" />
                                     <YAxis stroke="#94a3b8" />
-                                    <Tooltip contentStyle={{ backgroundColor: '#1e293b', borderColor: '#334155', color: '#f8fafc' }} />
-                                    <Line type="monotone" dataKey="recall" name="Recall Score (%)" stroke="#f59e0b" strokeWidth={3} />
-                                    <Line type="monotone" dataKey="score" name="Final Score (%)" stroke="#0ea5e9" strokeWidth={3} />
+                                    <Tooltip content={<CustomTooltip />} />
+                                    <Line type="monotone" dataKey="recall" name="Recall Score" stroke="#f59e0b" strokeWidth={3} />
+                                    <Line type="monotone" dataKey="score" name="Final Score" stroke="#0ea5e9" strokeWidth={3} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
