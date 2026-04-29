@@ -141,6 +141,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCrea
                                             <div className="text-2xl font-bold text-sky-400">{Math.round(s.analysisReport.overallScore)}%</div>
                                             <div className="text-xs text-slate-400 uppercase tracking-wider">Score</div>
                                         </div>
+                                        {s.analysisReport.cgpa !== undefined && (
+                                            <div>
+                                                <div className="text-2xl font-bold text-indigo-400">{s.analysisReport.cgpa.toFixed(2)}</div>
+                                                <div className="text-xs text-slate-400 uppercase tracking-wider">CGPA</div>
+                                            </div>
+                                        )}
                                         <div>
                                             <div className="text-2xl font-bold text-amber-400">{Math.round(s.analysisReport.recallPerformance.recallScore)}%</div>
                                             <div className="text-xs text-slate-400 uppercase tracking-wider">Recall</div>

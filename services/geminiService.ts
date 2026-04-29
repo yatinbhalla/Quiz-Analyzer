@@ -179,9 +179,10 @@ const analysisSchema = {
                          type: Type.OBJECT,
                          properties: {
                              name: { type: Type.STRING },
-                             resourceContext: { type: Type.STRING, description: "Link to relevant concepts discussed in feedback." }
+                             resourceContext: { type: Type.STRING, description: "Link to relevant concepts discussed in feedback." },
+                             importanceReason: { type: Type.STRING, description: "Brief description of why this concept is important based on the user's performance in the quiz." }
                          },
-                         required: ['name', 'resourceContext']
+                         required: ['name', 'resourceContext', 'importanceReason']
                      }
                  }
              },
@@ -230,7 +231,31 @@ export const analyzeQuizAnswers = async (questions: QuizQuestion[], userAnswers:
         });
         
         const jsonText = response.text.trim();
-        return JSON.parse(jsonText) as AnalysisReport;
+        const report = JSON.parse(jsonText) as AnalysisReport;
+
+        let obtainedMarks = 0;
+        let totalMarks = questions.length * 4;
+        
+        report.detailedAnalysis.forEach((analysis, index) => {
+            const answer = userAnswers[index];
+            // Treat as attempted if they selected at least one option
+            const isAttempted = answer && answer.finalAnswer && answer.finalAnswer.length > 0;
+            if (isAttempted) {
+                if (analysis.isCorrect) {
+                    obtainedMarks += 4;
+                } else {
+                    obtainedMarks -= 1;
+                }
+            }
+        });
+        
+        report.obtainedMarks = obtainedMarks;
+        report.totalMarks = totalMarks;
+        let percentage = obtainedMarks / totalMarks;
+        if (percentage < 0) percentage = 0;
+        report.cgpa = parseFloat((percentage * 10).toFixed(2));
+
+        return report;
 
     } catch (error) {
         console.error("Error analyzing answers with Gemini:", error);

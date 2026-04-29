@@ -150,7 +150,8 @@ const StudyPlanCard: React.FC<{ plan?: StudyPlan }> = ({ plan }) => {
                         {plan.concepts.map((concept, i) => (
                             <div key={i} className="border-l-2 border-indigo-500/50 pl-3">
                                 <p className="font-medium text-slate-200 mb-1">{concept.name}</p>
-                                <p className="text-xs text-slate-400 leading-relaxed">{concept.resourceContext}</p>
+                                <p className="text-xs text-slate-400 leading-relaxed mb-1">{concept.importanceReason}</p>
+                                <p className="text-xs text-indigo-300 leading-relaxed italic">{concept.resourceContext}</p>
                             </div>
                         ))}
                     </div>
@@ -175,10 +176,28 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
             <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700 mb-8 text-center">
                 <h2 className="text-3xl font-bold text-sky-400 mb-2">Quiz Report</h2>
                 <p className="text-slate-400 mb-6">{report.summary}</p>
-                <div className="text-6xl font-bold mb-4">
-                    <span className={scoreColor}>{report.overallScore}%</span>
+                <div className="flex flex-wrap justify-center items-center gap-8 mb-4">
+                    <div>
+                        <div className="text-5xl font-bold">
+                            <span className={scoreColor}>{report.overallScore}%</span>
+                        </div>
+                        <p className="text-slate-300 text-lg mt-2">Overall Score</p>
+                    </div>
+                    {report.cgpa !== undefined && (
+                        <div className="border-slate-700 pl-0 md:pl-8 md:border-l">
+                            <div className="text-5xl font-bold text-indigo-400">
+                                {report.cgpa} <span className="text-3xl text-slate-500">/ 10</span>
+                            </div>
+                            <p className="text-slate-300 text-lg mt-2">CGPA</p>
+                        </div>
+                    )}
                 </div>
-                <p className="text-slate-300 text-lg">Overall Score</p>
+                {report.obtainedMarks !== undefined && report.totalMarks !== undefined && (
+                    <p className="text-slate-400 mt-4 bg-slate-900/50 inline-block px-4 py-2 rounded-lg">
+                        Scored <strong className="text-white">{report.obtainedMarks}</strong> out of <strong className="text-white">{report.totalMarks}</strong> marks 
+                        <span className="text-xs ml-2 text-slate-500 block sm:inline mt-1 sm:mt-0">(+4 correct, -1 incorrect)</span>
+                    </p>
+                )}
             </div>
 
             <RecallPerformanceCard performance={report.recallPerformance} />

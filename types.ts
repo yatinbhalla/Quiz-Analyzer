@@ -69,11 +69,14 @@ export interface RecallPerformance {
 export interface StudyPlan {
     focusAreas: string[];
     recommendations: string[];
-    concepts: { name: string; resourceContext: string }[];
+    concepts: { name: string; resourceContext: string; importanceReason: string }[];
 }
 
 export interface AnalysisReport {
     overallScore: number; // Percentage
+    obtainedMarks?: number;
+    totalMarks?: number;
+    cgpa?: number;
     summary: string;
     recallPerformance: RecallPerformance;
     detailedAnalysis: QuestionAnalysis[];
