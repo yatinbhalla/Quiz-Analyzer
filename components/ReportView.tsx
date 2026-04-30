@@ -82,7 +82,7 @@ const RecallPerformanceCard: React.FC<{ performance: RecallPerformance }> = ({ p
                      <h4 className="font-semibold text-slate-300 mb-2">Peer Comparison</h4>
                      <p className="text-xs text-slate-500 mb-4">* The 'Peers' metric currently shows a simulated average value. Collecting aggregate topic-level recall data from all users to build a true global baseline feature is recommended.</p>
                      <div className="h-48 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={192}>
                             <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" />
