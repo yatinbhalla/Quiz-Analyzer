@@ -1,20 +1,36 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Quiz Analyzer
 
-# Run and deploy your AI Studio app
+Upload a quiz file, answer questions with active recall, then get a detailed AI-powered performance analysis — powered by Google Gemini.
 
-This contains everything you need to run your app locally.
+The difference from a regular quiz app: instead of just scoring you, this tells you *why* you got things wrong, *which concepts* you're weak on, and *what to study next*.
 
-View your app in AI Studio: https://ai.studio/apps/13fd3e71-3cee-43ff-9b73-9181180e3581
+We use the following tech stack:
+- Google Gemini for performance analysis and recommendations
+- TypeScript + React for the interface
+- Tailwind CSS for styling
 
-## Run Locally
+## 🚀 Features
 
-**Prerequisites:**  Node.js
+* **File Upload:** Upload any Q&A formatted quiz file — text, CSV, or structured format
+* **Active Recall Mode:** Answer from memory before seeing answer options, which strengthens retention far more than passive review
+* **Detailed Analysis:** AI-generated breakdown covering overall score, strong areas, weak areas, concept gaps, and what to study next
+* **Session History:** Track performance across multiple sessions to measure improvement over time
+* **Clean Interface:** Distraction-free quiz experience designed for focused practice
 
+## Setup
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+```bash
+git clone https://github.com/yatinbhalla/Quiz-Analyzer.git
+cd Quiz-Analyzer
+npm install
+echo "GEMINI_API_KEY=your_key_here" > .env.local
+npm run dev
+```
+
+## Author
+
+Yatin Bhalla
+<br>
+🛍️ PM & AI builder | Managing retail businesses | PG Product Management @ BITS School of Management
+<br>
+🔗 [linkedin.com/in/yatin-bhalla-834632238](https://linkedin.com/in/yatin-bhalla-834632238)
