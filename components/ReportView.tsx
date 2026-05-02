@@ -81,8 +81,8 @@ const RecallPerformanceCard: React.FC<{ performance: RecallPerformance }> = ({ p
                 <div>
                      <h4 className="font-semibold text-slate-300 mb-2">Peer Comparison</h4>
                      <p className="text-xs text-slate-500 mb-4">* The 'Peers' metric currently shows a simulated average value. Collecting aggregate topic-level recall data from all users to build a true global baseline feature is recommended.</p>
-                     <div className="h-48 w-full">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={192}>
+                     <div className="w-full">
+                        <ResponsiveContainer width="100%" height={192}>
                             <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
                                 <XAxis dataKey="name" stroke="#94a3b8" />
@@ -237,17 +237,19 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                         </div>
                     </div>
                 </div>
-            </div>
-
-            <div className="space-y-6">
-                {report.detailedAnalysis.map((analysis, index) => (
+            </div>            <div className="space-y-6">
+                {report.detailedAnalysis.map((analysis, index) => {
+                    const question = questions?.[index];
+                    const answer = userAnswers?.[index];
+                    
+                    return (
                     <div key={index} className={`bg-slate-800 rounded-2xl shadow-lg border ${analysis.isCorrect ? 'border-green-500/30' : 'border-red-500/30'} overflow-hidden`}>
                         <div className="p-6">
                             <div className="flex justify-between items-start mb-4 gap-4">
                                 <div className="flex-1">
                                     <p className="text-lg font-semibold">{analysis.question}</p>
                                     <div className="flex items-center gap-2 mt-1">
-                                         <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${questions[index].type === QuestionType.MSQ ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{questions[index].type}</span>
+                                         {question?.type && <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${question.type === QuestionType.MSQ ? 'bg-blue-500/20 text-blue-300' : 'bg-purple-500/20 text-purple-300'}`}>{question.type}</span>}
                                         <span className="text-xs font-medium bg-slate-600/50 text-slate-300 px-2 py-0.5 rounded-full">{analysis.topic}</span>
                                     </div>
                                 </div>
@@ -265,8 +267,8 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 text-sm">
                                 <div className="bg-slate-900/50 p-3 rounded-lg">
                                     <h4 className="font-bold text-slate-400 mb-1">Your Recalled Answer</h4>
-                                    {userAnswers[index].recalledAnswer ? (
-                                        <p className="text-slate-200 italic">"{userAnswers[index].recalledAnswer}"</p>
+                                    {answer?.recalledAnswer ? (
+                                        <p className="text-slate-200 italic">"{answer.recalledAnswer}"</p>
                                     ) : (
                                         <p className="text-slate-400 italic">(Skipped)</p>
                                     )}
@@ -288,21 +290,21 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                                         </div>
                                     )}
                                 </div>
-                                <div className="bg-slate-900/50 p-3 rounded-lg"><h4 className="font-bold text-slate-400 mb-1">Your Final Selection</h4><div className="text-slate-200">{renderAnswer(userAnswers[index].finalAnswer)}</div></div>
-                                <div className="bg-slate-900/50 p-3 rounded-lg"><h4 className="font-bold text-slate-400 mb-1">Correct Answer</h4><div className="text-slate-200 font-medium">{renderAnswer(questions[index].correctAnswer)}</div></div>
+                                <div className="bg-slate-900/50 p-3 rounded-lg"><h4 className="font-bold text-slate-400 mb-1">Your Final Selection</h4><div className="text-slate-200">{renderAnswer(answer?.finalAnswer || [])}</div></div>
+                                <div className="bg-slate-900/50 p-3 rounded-lg"><h4 className="font-bold text-slate-400 mb-1">Correct Answer</h4><div className="text-slate-200 font-medium">{renderAnswer(question?.correctAnswer || [])}</div></div>
                             </div>
                             
                             <div>
                                 <h4 className="font-bold text-sky-400 mb-2">Gemini's Feedback</h4>
                                 <p className="text-slate-300 leading-relaxed">{analysis.feedback}</p>
                                 
-                                {analysis.timeFeedback && userAnswers[index].timeSpentSeconds !== undefined && (
+                                {analysis.timeFeedback && answer?.timeSpentSeconds !== undefined && (
                                     <div className="mt-4 p-4 bg-slate-900/50 border border-slate-700/50 rounded-xl">
                                         <h5 className="font-bold text-slate-300 mb-2 text-sm flex items-center gap-2">
                                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-sky-400">
                                               <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
                                             </svg>
-                                            Timing Analysis ({Math.floor(userAnswers[index].timeSpentSeconds! / 60)}:{(userAnswers[index].timeSpentSeconds! % 60).toString().padStart(2, '0')})
+                                            Timing Analysis ({Math.floor((answer.timeSpentSeconds || 0) / 60)}:{((answer.timeSpentSeconds || 0) % 60).toString().padStart(2, '0')})
                                         </h5>
                                         <p className="text-slate-400 text-sm leading-relaxed">{analysis.timeFeedback}</p>
                                     </div>
@@ -310,7 +312,7 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
                             </div>
                         </div>
                     </div>
-                ))}
+                )})}
             </div>
             <div className="mt-8 text-center">
                 <button onClick={onRestart} className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-500 transition-colors duration-300">

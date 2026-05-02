@@ -51,6 +51,18 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
     }, [isTimerEnabled, currentIndex]);
 
 
+    // Auto-sync current state to parent to ensure it is backed up in local storage
+    useEffect(() => {
+        const timeout = setTimeout(() => {
+            onAnswerUpdate(currentIndex, { 
+                recalledAnswer, 
+                finalAnswer: selectedOptions, 
+                timeSpentSeconds: timeSpent 
+            });
+        }, 1000);
+        return () => clearTimeout(timeout);
+    }, [recalledAnswer, selectedOptions, timeSpent, currentIndex, onAnswerUpdate]);
+
     const formatTime = (seconds: number) => {
         const m = Math.floor(seconds / 60).toString().padStart(2, '0');
         const s = (seconds % 60).toString().padStart(2, '0');
@@ -64,7 +76,7 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
     };
 
     const handleOptionToggle = (option: string) => {
-        if (currentQuestion.type === QuestionType.MCQ) {
+        if (currentQuestion?.type === QuestionType.MCQ) {
             setSelectedOptions([option]);
         } else {
             setSelectedOptions(prev => 
@@ -132,7 +144,7 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
                         )}
                         <h4 className="font-semibold text-slate-300 mb-4">
                             Choose the correct option(s):
-                            {currentQuestion.type === QuestionType.MSQ && <span className="text-slate-400 font-normal ml-2">(Select all that apply)</span>}
+                            {currentQuestion?.type === QuestionType.MSQ && <span className="text-slate-400 font-normal ml-2">(Select all that apply)</span>}
                         </h4>
                         <div className="space-y-3">
                             {currentQuestion.options.map((option, index) => (
@@ -141,8 +153,8 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
                                     onClick={() => handleOptionToggle(option)}
                                     className={`w-full text-left p-4 border rounded-lg transition-all duration-200 flex items-center ${selectedOptions.includes(option) ? 'bg-sky-500/20 border-sky-500 ring-2 ring-sky-500' : 'bg-slate-700/50 border-slate-600 hover:bg-slate-700'}`}
                                 >
-                                    <div className={`w-5 h-5 mr-4 flex-shrink-0 border-2 flex items-center justify-center ${selectedOptions.includes(option) ? 'border-sky-400 bg-sky-500' : 'border-slate-500'} ${currentQuestion.type === QuestionType.MSQ ? 'rounded-md' : 'rounded-full'}`}>
-                                       {selectedOptions.includes(option) && currentQuestion.type === QuestionType.MSQ && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-white"><path d="M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0Z" /></svg>}
+                                    <div className={`w-5 h-5 mr-4 flex-shrink-0 border-2 flex items-center justify-center ${selectedOptions.includes(option) ? 'border-sky-400 bg-sky-500' : 'border-slate-500'} ${currentQuestion?.type === QuestionType.MSQ ? 'rounded-md' : 'rounded-full'}`}>
+                                       {selectedOptions.includes(option) && currentQuestion?.type === QuestionType.MSQ && <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" className="w-3.5 h-3.5 text-white"><path d="M12.207 4.793a1 1 0 0 1 0 1.414l-5 5a1 1 0 0 1-1.414 0l-2-2a1 1 0 0 1 1.414-1.414L6.5 9.086l4.293-4.293a1 1 0 0 1 1.414 0Z" /></svg>}
                                     </div>
                                     <span>{option}</span>
                                 </button>

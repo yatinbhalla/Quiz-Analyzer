@@ -111,8 +111,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCrea
                 <div className="space-y-6">
                     <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700">
                         <h3 className="text-lg font-bold mb-6">Performance Trends</h3>
-                        <div className="h-64 w-full">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={256}>
+                        <div className="w-full">
+                            <ResponsiveContainer width="100%" height={256}>
                                 <LineChart data={chartData}>
                                     <CartesianGrid strokeDasharray="3 3" stroke="#334155" />
                                     <XAxis dataKey="name" stroke="#94a3b8" />

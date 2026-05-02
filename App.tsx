@@ -70,11 +70,13 @@ const App: React.FC = () => {
         localStorage.setItem(SAVED_SENSITIVITY_KEY, validationSensitivity);
         localStorage.setItem(SAVED_TIMER_KEY, isTimerEnabled.toString());
 
-        if (appState === AppState.QUIZ && quizData.length > 0) {
-            const stateToSave = { appState, quizData, userAnswers };
-            localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(stateToSave));
-            localStorage.setItem(SAVED_INDEX_KEY, currentIndex.toString());
-        } else {
+        if (appState === AppState.QUIZ || appState === AppState.ANALYZING) {
+            if (quizData.length > 0) {
+                const stateToSave = { appState: AppState.QUIZ, quizData, userAnswers };
+                localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(stateToSave));
+                localStorage.setItem(SAVED_INDEX_KEY, currentIndex.toString());
+            }
+        } else if (appState === AppState.DASHBOARD || appState === AppState.UPLOAD) {
             localStorage.removeItem(SAVED_STATE_KEY);
             localStorage.removeItem(SAVED_INDEX_KEY);
         }
