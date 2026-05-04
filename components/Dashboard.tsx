@@ -131,9 +131,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ onStartUpload, onStartCrea
                             {sessions.map(s => (
                                 <div key={s.id} className="bg-slate-800 p-5 rounded-xl border border-slate-700 hover:border-slate-500 transition-colors cursor-pointer" onClick={() => onViewReport(s)}>
                                     <div className="flex justify-between items-start mb-2">
-                                        <span className="text-sm text-slate-400">
-                                            {s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString() : 'Recent'}
-                                        </span>
+                                        <div>
+                                            <div className="font-semibold text-slate-200">{s.title || 'Untitled Assessment'}</div>
+                                            <div className="text-sm text-slate-400 mt-1">
+                                                {s.createdAt?.toDate ? s.createdAt.toDate().toLocaleDateString() : 'Recent'}
+                                            </div>
+                                        </div>
                                         <span className="px-2 py-1 bg-slate-900 rounded text-xs font-mono">{s.quizData.length} Qs</span>
                                     </div>
                                     <div className="flex gap-4 mt-4">

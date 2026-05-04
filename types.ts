@@ -25,6 +25,11 @@ export interface QuizQuestion {
     subTopic?: string;
 }
 
+export interface QuizResponse {
+    title: string;
+    questions: QuizQuestion[];
+}
+
 export interface UserAnswer {
     recalledAnswer: string;
     finalAnswer: string[]; // Array of selected options

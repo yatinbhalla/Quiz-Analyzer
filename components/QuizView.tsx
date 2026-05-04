@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { QuizQuestion, UserAnswer, QuestionType, ValidationSensitivity } from '../types';
 
 interface QuizViewProps {
+    title: string;
     questions: QuizQuestion[];
     userAnswers: UserAnswer[];
     currentIndex: number;
@@ -13,7 +14,7 @@ interface QuizViewProps {
     onComplete: (answers: UserAnswer[]) => void;
 }
 
-const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, onNavigate, onAnswerUpdate, onComplete }) => {
+const QuizView: React.FC<QuizViewProps> = ({ title, questions, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, onNavigate, onAnswerUpdate, onComplete }) => {
     const [recalledAnswer, setRecalledAnswer] = useState('');
     const [showOptions, setShowOptions] = useState(false);
     const [selectedOptions, setSelectedOptions] = useState<string[]>([]);
@@ -102,7 +103,8 @@ const QuizView: React.FC<QuizViewProps> = ({ questions, userAnswers, currentInde
     }
 
     return (
-        <div className="w-full max-w-3xl mx-auto">
+        <div className="w-full max-w-3xl mx-auto border border-transparent">
+            {title && <h2 className="text-2xl font-bold text-slate-200 mb-6 text-center">{title}</h2>}
             <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700 relative">
                 {isTimerEnabled && (
                     <div className="absolute top-4 right-4 flex items-center gap-2 px-3 py-1 bg-slate-900 rounded-full border border-slate-600 text-slate-300 font-mono text-sm">

@@ -87,6 +87,7 @@ export interface QuizSessionData {
     id?: string;
     userId: string;
     createdAt: any;
+    title: string;
     quizData: QuizQuestion[];
     userAnswers: UserAnswer[];
     analysisReport: AnalysisReport;
@@ -94,6 +95,7 @@ export interface QuizSessionData {
 }
 
 export const saveQuizSession = async (
+    title: string,
     quizData: QuizQuestion[],
     userAnswers: UserAnswer[],
     analysisReport: AnalysisReport,
@@ -106,6 +108,7 @@ export const saveQuizSession = async (
         await setDoc(sessionRef, {
             userId: auth.currentUser.uid,
             createdAt: serverTimestamp(),
+            title,
             quizData,
             userAnswers,
             analysisReport,

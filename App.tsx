@@ -20,6 +20,7 @@ const SAVED_TIMER_KEY = 'geminiQuizTimerEnabled';
 const App: React.FC = () => {
     const [appState, setAppState] = useState<AppState>(AppState.DASHBOARD);
     const [quizData, setQuizData] = useState<QuizQuestion[]>([]);
+    const [quizTitle, setQuizTitle] = useState<string>('Assessment');
     const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]);
     const [currentIndex, setCurrentIndex] = useState(0);
     const [validationSensitivity, setValidationSensitivity] = useState<ValidationSensitivity>('Balanced');
@@ -46,6 +47,7 @@ const App: React.FC = () => {
                 const savedState = JSON.parse(savedStateJSON);
                 if (savedState.appState === AppState.QUIZ && Array.isArray(savedState.quizData) && Array.isArray(savedState.userAnswers)) {
                     setQuizData(savedState.quizData);
+                    setQuizTitle(savedState.quizTitle || 'Assessment');
                     setUserAnswers(savedState.userAnswers);
                     setAppState(savedState.appState);
                     if (savedIndexJSON) {
@@ -72,22 +74,24 @@ const App: React.FC = () => {
 
         if (appState === AppState.QUIZ || appState === AppState.ANALYZING) {
             if (quizData.length > 0) {
-                const stateToSave = { appState: AppState.QUIZ, quizData, userAnswers };
+                const stateToSave = { appState: AppState.QUIZ, quizTitle, quizData, userAnswers };
                 localStorage.setItem(SAVED_STATE_KEY, JSON.stringify(stateToSave));
                 localStorage.setItem(SAVED_INDEX_KEY, currentIndex.toString());
             }
-        } else if (appState === AppState.DASHBOARD || appState === AppState.UPLOAD) {
+        } else if (appState === AppState.DASHBOARD || appState === AppState.UPLOAD || appState === AppState.CREATE) {
             localStorage.removeItem(SAVED_STATE_KEY);
             localStorage.removeItem(SAVED_INDEX_KEY);
         }
-    }, [appState, quizData, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, isInitialized]);
+    }, [appState, quizTitle, quizData, userAnswers, currentIndex, validationSensitivity, isTimerEnabled, isInitialized]);
 
     const handleFileUpload = useCallback(async (fileContent: string) => {
         setAppState(AppState.PARSING);
         setError(null);
         try {
-            const parsedQuiz = await parseQuizFromText(fileContent);
+            const response = await parseQuizFromText(fileContent);
+            const parsedQuiz = response.questions;
             if (parsedQuiz && parsedQuiz.length > 0) {
+                setQuizTitle(response.title || 'Parsed Quiz');
                 setQuizData(parsedQuiz);
                 setUserAnswers(new Array(parsedQuiz.length).fill({ recalledAnswer: '', finalAnswer: [] }));
                 setCurrentIndex(0);
@@ -102,7 +106,8 @@ const App: React.FC = () => {
         }
     }, []);
 
-    const handleQuizCreated = useCallback((newQuizData: QuizQuestion[]) => {
+    const handleQuizCreated = useCallback((title: string, newQuizData: QuizQuestion[]) => {
+        setQuizTitle(title || 'Generated Quiz');
         setQuizData(newQuizData);
         setUserAnswers(new Array(newQuizData.length).fill({ recalledAnswer: '', finalAnswer: [] }));
         setCurrentIndex(0);
@@ -127,17 +132,18 @@ const App: React.FC = () => {
             setAppState(AppState.REPORT);
             
             // Save session to Firebase
-            await saveQuizSession(quizData, finalAnswers, report, validationSensitivity);
+            await saveQuizSession(quizTitle, quizData, finalAnswers, report, validationSensitivity);
             
         } catch (err) {
             console.error(err);
             setError(err instanceof Error ? err.message : "An unknown error occurred during analysis.");
             setAppState(AppState.QUIZ);
         }
-    }, [quizData, validationSensitivity]);
+    }, [quizTitle, quizData, validationSensitivity]);
 
     const handleRestart = () => {
         setAppState(AppState.DASHBOARD);
+        setQuizTitle('Assessment');
         setQuizData([]);
         setUserAnswers([]);
         setAnalysisReport(null);
@@ -146,6 +152,7 @@ const App: React.FC = () => {
     };
 
     const handleViewReport = (session: QuizSessionData) => {
+        setQuizTitle(session.title || 'Assessment');
         setQuizData(session.quizData);
         setUserAnswers(session.userAnswers);
         setAnalysisReport(session.analysisReport);
@@ -190,6 +197,7 @@ const App: React.FC = () => {
                 return <Loader text="Parsing your quiz with Gemini..." />;
             case AppState.QUIZ:
                 return <QuizView 
+                            title={quizTitle}
                             questions={quizData} 
                             userAnswers={userAnswers}
                             currentIndex={currentIndex}
@@ -202,7 +210,7 @@ const App: React.FC = () => {
             case AppState.ANALYZING:
                 return <Loader text="Analyzing your answers with Gemini..." />;
             case AppState.REPORT:
-                return analysisReport && <ReportView report={analysisReport} questions={quizData} userAnswers={userAnswers} onRestart={handleRestart} />;
+                return analysisReport && <ReportView title={quizTitle} report={analysisReport} questions={quizData} userAnswers={userAnswers} onRestart={handleRestart} />;
             default:
                 return (
                     <Dashboard 

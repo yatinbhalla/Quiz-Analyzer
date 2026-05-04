@@ -33,25 +33,34 @@ const quizParsingSchema = {
     }
 };
 
-export const parseQuizFromText = async (fileContent: string): Promise<QuizQuestion[]> => {
+const quizResponseSchema = {
+    type: Type.OBJECT,
+    properties: {
+        title: { type: Type.STRING, description: "A catchy, relevant title for this quiz based on its contents" },
+        questions: quizParsingSchema
+    },
+    required: ['title', 'questions']
+};
+
+export const parseQuizFromText = async (fileContent: string): Promise<{ title: string, questions: QuizQuestion[] }> => {
     try {
         const response = await ai.models.generateContent({
             model: "gemini-3-flash-preview",
-            contents: `Parse the following quiz text and convert it into a JSON object. The text contains questions, multiple-choice/multiple-select options, and answers. The answers might be at the end of the file or next to each question. Determine if each question is an MCQ (single correct answer) or MSQ (multiple correct answers) and set the 'type' a field accordingly. The 'correctAnswer' field must always be an array of strings. Here is the quiz content:\n\n${fileContent}`,
+            contents: `Parse the following quiz text and convert it into a JSON object with a title and questions array. The text contains questions, multiple-choice/multiple-select options, and answers. The answers might be at the end of the file or next to each question. Determine if each question is an MCQ (single correct answer) or MSQ (multiple correct answers) and set the 'type' a field accordingly. The 'correctAnswer' field must always be an array of strings. Generate a good title for it. Here is the quiz content:\n\n${fileContent}`,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: quizParsingSchema,
+                responseSchema: quizResponseSchema,
             },
         });
         
         const jsonText = response.text.trim();
         const parsedData = JSON.parse(jsonText);
 
-        if (!Array.isArray(parsedData)) {
-            throw new Error("Parsed data is not an array.");
+        if (!parsedData || !Array.isArray(parsedData.questions)) {
+            throw new Error("Parsed data format is invalid.");
         }
 
-        return parsedData as QuizQuestion[];
+        return parsedData as { title: string, questions: QuizQuestion[] };
 
     } catch (error) {
         console.error("Error parsing quiz with Gemini:", error);
@@ -59,32 +68,32 @@ export const parseQuizFromText = async (fileContent: string): Promise<QuizQuesti
     }
 };
 
-export const generateQuiz = async (topic: string, difficulty: string, questionType: string, category: string, count: number): Promise<QuizQuestion[]> => {
+export const generateQuiz = async (topic: string, difficulty: string, questionType: string, category: string, count: number): Promise<{ title: string, questions: QuizQuestion[] }> => {
     try {
         const prompt = `Generate exactly ${count} quiz questions about '${topic}'.
 The difficulty level should be '${difficulty}'.
 The question type style should be '${questionType}' (e.g. MCQ, MSQ, or Mix).
 The category of questions should be '${category}' (e.g. conceptual, scenario-based, case studies, or mix).
 
-Ensure the output is a valid JSON array matching the provided schema. The 'correctAnswer' field MUST be an array of strings matching the exact text of the correct option(s).`;
+Ensure the output is a valid JSON object matching the provided schema, including a title and a questions array. The 'correctAnswer' field MUST be an array of strings matching the exact text of the correct option(s).`;
 
         const response = await ai.models.generateContent({
             model: "gemini-3-pro-preview",
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: quizParsingSchema,
+                responseSchema: quizResponseSchema,
             },
         });
         
         const jsonText = response.text.trim();
         const parsedData = JSON.parse(jsonText);
 
-        if (!Array.isArray(parsedData)) {
-            throw new Error("Generated data is not an array.");
+        if (!parsedData || !Array.isArray(parsedData.questions)) {
+            throw new Error("Generated data format is invalid.");
         }
 
-        return parsedData as QuizQuestion[];
+        return parsedData as { title: string, questions: QuizQuestion[] };
     } catch (error) {
         console.error("Error generating quiz with Gemini:", error);
         throw new Error("Gemini could not generate the quiz. Please try again.");

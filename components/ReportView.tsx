@@ -6,6 +6,7 @@ import MarkdownRenderer from './MarkdownRenderer';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
 interface ReportViewProps {
+    title: string;
     report: AnalysisReport;
     questions: QuizQuestion[];
     userAnswers: UserAnswer[];
@@ -161,7 +162,7 @@ const StudyPlanCard: React.FC<{ plan?: StudyPlan }> = ({ plan }) => {
     );
 };
 
-const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers, onRestart }) => {
+const ReportView: React.FC<ReportViewProps> = ({ title, report, questions, userAnswers, onRestart }) => {
     const [isChatbotOpen, setIsChatbotOpen] = useState(false);
     const scoreColor = report.overallScore >= 70 ? 'text-green-400' : report.overallScore >= 40 ? 'text-yellow-400' : 'text-red-400';
 
@@ -174,7 +175,8 @@ const ReportView: React.FC<ReportViewProps> = ({ report, questions, userAnswers,
     return (
         <div className="w-full max-w-4xl mx-auto animate-fade-in">
             <div className="bg-slate-800 p-8 rounded-2xl shadow-lg border border-slate-700 mb-8 text-center">
-                <h2 className="text-3xl font-bold text-sky-400 mb-2">Quiz Report</h2>
+                <h2 className="text-sm font-semibold tracking-wider text-slate-500 uppercase mb-2">Quiz Report</h2>
+                <h1 className="text-3xl font-bold text-sky-400 mb-2">{title}</h1>
                 <p className="text-slate-400 mb-6">{report.summary}</p>
                 <div className="flex flex-wrap justify-center items-center gap-8 mb-4">
                     <div>
