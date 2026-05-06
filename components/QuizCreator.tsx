@@ -4,7 +4,7 @@ import { generateQuiz } from '../services/geminiService';
 import Loader from './Loader';
 
 interface QuizCreatorProps {
-    onQuizCreated: (quiz: QuizQuestion[]) => void;
+    onQuizCreated: (title: string, quiz: QuizQuestion[]) => void;
     onCancel: () => void;
 }
 
@@ -20,6 +20,7 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
     const [isGenerating, setIsGenerating] = useState(false);
 
     // Manual Form State
+    const [quizTitle, setQuizTitle] = useState('Custom Assessment');
     const [questions, setQuestions] = useState<QuizQuestion[]>([
         { question: '', options: ['', ''], correctAnswer: [], type: QuestionType.MCQ }
     ]);
@@ -34,9 +35,12 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
         setIsGenerating(true);
         try {
             const generated = await generateQuiz(topic, difficulty, qType, category, count);
-            onQuizCreated(generated);
+            setQuizTitle(generated.title || `${topic} Quiz`);
+            setQuestions(generated.questions);
+            setMode('manual');
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to generate quiz.");
+        } finally {
             setIsGenerating(false);
         }
     };
@@ -127,7 +131,7 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
             return;
         }
 
-        onQuizCreated(questions);
+        onQuizCreated(quizTitle, questions);
     };
 
     if (isGenerating) {
@@ -221,6 +225,19 @@ export const QuizCreator: React.FC<QuizCreatorProps> = ({ onQuizCreated, onCance
 
             {mode === 'manual' && (
                 <>
+                    <div className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Assessment Title</label>
+                            <input 
+                                type="text"
+                                value={quizTitle}
+                                onChange={(e) => setQuizTitle(e.target.value)}
+                                className="w-full bg-slate-900 border border-slate-700 rounded-lg p-3 text-white focus:outline-none focus:border-sky-500 font-semibold"
+                                placeholder="e.g. History 101 Midterm"
+                            />
+                        </div>
+                    </div>
+
                     {questions.map((q, qIndex) => (
                 <div key={qIndex} className="bg-slate-800 p-6 rounded-xl border border-slate-700 space-y-4 relative">
                     {questions.length > 1 && (

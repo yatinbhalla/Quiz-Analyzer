@@ -137,6 +137,7 @@ export const getUserSessions = async (): Promise<QuizSessionData[]> => {
                 id: doc.id,
                 userId: data.userId,
                 createdAt: data.createdAt,
+                title: data.title,
                 quizData: data.quizData,
                 userAnswers: data.userAnswers,
                 analysisReport: data.analysisReport,
